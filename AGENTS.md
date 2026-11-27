@@ -21,4 +21,6 @@ The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. This
 
 Cellular growth stops at row 24. Rows 25–26 allow an upward shot from outside a volatile cell's blast. The one-, two-, and three-gun layouts are reached on waves 1, 6, and 12. Test weapon and movement edits at those breakpoints and at both walls. A full refill in Ammo Packs is 40 volleys. X Shots is Shootable by default, with Unbreakable as the harder choice. Test menu navigation and simultaneous movement and fire on both keyboard and SNES after control changes.
 
+For each beta, attach a standalone `RAILGUN.PRG` alongside the runtime and build ZIPs. Verify that the direct PRG and the runtime ZIP contain the same binary.
+
 Before a handoff, record the commit, changed behavior, build/hash, actual checks, and any open verification in the pull request or release notes. [CONTRIBUTOR.md](CONTRIBUTOR.md) covers contributions and wiki maintenance.

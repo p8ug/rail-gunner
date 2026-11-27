@@ -2,6 +2,10 @@ name: Publish Rail Gunner R30 beta
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-r30-beta.yml
     tags:
       - v0.1.0-beta.2
 
@@ -10,6 +14,7 @@ permissions:
 
 jobs:
   publish:
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     steps:
       - name: Check out the tagged source
@@ -29,6 +34,7 @@ jobs:
         run: |
           mkdir -p staging/Rail-Gunner assets
           cp build/RAILGUN.PRG README.md REPLAY-RESULTS.md staging/Rail-Gunner/
+          cp build/RAILGUN.PRG assets/RAILGUN.PRG
           (cd staging && zip -q -r ../assets/Rail-Gunner-R30.zip Rail-Gunner)
           git archive --format=zip --prefix=Rail-Gunner-R30-Build/ \
             --output=assets/Rail-Gunner-R30-Build.zip HEAD
@@ -42,6 +48,7 @@ jobs:
           cat > release-notes.md <<'NOTES'
           Rail Gunner is a grid shooter for the Commander X16. This beta targets a 65C02 at 8 MHz with 512 KB.
 
+          - **RAILGUN.PRG** is the direct game download.
           - **Rail-Gunner-R30.zip** contains the ready-to-run RAILGUN.PRG.
           - **Rail-Gunner-R30-Build.zip** contains the complete source, music, and offline Windows and Linux build tools.
 
@@ -49,6 +56,30 @@ jobs:
 
           [Player Guide](https://github.com/p8ug/rail-gunner/wiki/Player-Guide) · [Developer Guide](https://github.com/p8ug/rail-gunner/wiki/Developer-Guide)
           NOTES
-          gh release create "$GITHUB_REF_NAME" assets/Rail-Gunner-R30.zip assets/Rail-Gunner-R30-Build.zip \
+          gh release create "$GITHUB_REF_NAME" assets/RAILGUN.PRG assets/Rail-Gunner-R30.zip assets/Rail-Gunner-R30-Build.zip \
             --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
             --title 'Rail Gunner R30 Beta' --notes-file release-notes.md
+
+
+  attach-prg-to-r30:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Rebuild the tagged PRG and verify its hash
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --depth=1 origin refs/tags/v0.1.0-beta.2
+          git checkout --detach FETCH_HEAD
+          sh build.sh
+          cmp RAILGUN-R30-REFERENCE.PRG build/RAILGUN.PRG
+          echo 'df48d71bd8f935235105e186d6bd79f238af306d84e9017bed78bf9ce92f6a3e  build/RAILGUN.PRG' | sha256sum --check
+      - name: Attach the standalone PRG to the existing beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.1.0-beta.2 --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name' | grep -Fxq RAILGUN.PRG; then
+            exit 0
+          fi
+          gh release upload v0.1.0-beta.2 build/RAILGUN.PRG --repo "$GITHUB_REPOSITORY"
