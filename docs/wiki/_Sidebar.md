@@ -1,0 +1,4 @@
+- [Home](https://github.com/p8ug/rail-gunner/wiki)
+- [Player Guide](https://github.com/p8ug/rail-gunner/wiki/Player-Guide)
+- [Developer Guide](https://github.com/p8ug/rail-gunner/wiki/Developer-Guide)
+- [What Prog8 Made Easier](https://github.com/p8ug/rail-gunner/wiki/What-Prog8-Made-Easier)

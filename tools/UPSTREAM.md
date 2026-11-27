@@ -1,0 +1,5 @@
+# Bundled build tools
+
+- **p8p8 0.6.0** for Windows x64 and Linux x86-64 comes from the [upstream release](https://github.com/gillham/p8p8/releases/tag/v0.6.0). Each distribution keeps its license and compiler libraries. `source/p8p8-source.tar.gz` contains the tagged compiler source. `source/p8p8-lib-source.tar.gz` contains the matching library submodule at commit `3edcb28470c12e35f245a0fb4dad515f36ff1d03`. To reconstruct the source checkout, extract that submodule into the compiler tree's `lib` directory.
+- **64tass 1.60.3243** for Windows comes from the [upstream binary release](https://sourceforge.net/projects/tass64/files/binaries/64tass-1.60.3243.zip/download). Its matching source is in `source/64tass-windows-source.zip`. The Linux binary comes from [Debian 1.60.3243-1](https://sources.debian.org/src/64tass/1.60.3243-1/), with the upstream and Debian packaging archives in `source/64tass-orig.tar.xz` and `source/64tass-debian.tar.xz`. License files are beside each copy of the assembler.
+- **Mido 1.3.3** and **packaging 26.4** wheels are for optional MIDI regeneration and include their own license files.

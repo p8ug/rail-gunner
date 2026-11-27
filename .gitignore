@@ -1,0 +1,8 @@
+/build/
+/.music-deps/
+__pycache__/
+*.pyc
+/ionbreak.sco
+/ionbreak.bak
+/IONBREAK.SCO
+/IONBREAK.BAK
