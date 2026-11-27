@@ -1,0 +1,60 @@
+name: Publish Rail Gunner 1.0
+
+on:
+  push:
+    tags:
+      - v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the tagged source
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --depth=1 origin "refs/tags/$GITHUB_REF_NAME"
+          git checkout --detach FETCH_HEAD
+
+      - name: Verify the offline build
+        run: |
+          sh build.sh
+          cmp RAILGUN-1.0-REFERENCE.PRG build/RAILGUN.PRG
+          sha256sum build/RAILGUN.PRG
+
+      - name: Package runtime and source
+        run: |
+          mkdir -p staging/Rail-Gunner assets
+          cp build/RAILGUN.PRG README.md REPLAY-RESULTS.md staging/Rail-Gunner/
+          cp build/RAILGUN.PRG assets/RAILGUN.PRG
+          (cd staging && zip -q -r ../assets/Rail-Gunner-1.0.zip Rail-Gunner)
+          git archive --format=zip --prefix=Rail-Gunner-1.0-Build/ \
+            --output=assets/Rail-Gunner-1.0-Build.zip HEAD
+          unzip -tq assets/Rail-Gunner-1.0.zip
+          unzip -tq assets/Rail-Gunner-1.0-Build.zip
+
+      - name: Publish the stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Rail Gunner 1.0 is an arcade grid shooter for the Commander X16. Dodge rail guns, blast advancing formations, and pick up green pods to power your next volley.
+
+          ## Downloads
+
+          - **RAILGUN.PRG** is the direct game download for hardware and emulators.
+          - **Rail-Gunner-1.0.zip** includes the game and documentation.
+          - **Rail-Gunner-1.0-Build.zip** includes the Prog8 source, music, and offline tools for Windows x64 and Linux x86-64.
+
+          Play Classic or choose Conway Life, HighLife, Rule 30, or Rule 110 to change how enemies grow across the grid. Choose your ammo rules and whether red X projectiles are shootable. Use a keyboard or SNES controller and compete for a spot on the local leaderboard.
+
+          The game targets a 65C02 at 8 MHz with 512 KB. This is the same game binary as the R30 beta. Gameplay was tested in X16Emu R49 with keyboard and virtual SNES input. The Linux build reproduces the release byte for byte. The native Windows build and physical hardware still need verification.
+
+          Music is “Punch Your Way Through” by northivanastan (CC0 1.0), arranged for the X16 YM2151. [Player guide](https://github.com/p8ug/rail-gunner/wiki/Player-Guide) · [Developer guide](https://github.com/p8ug/rail-gunner/wiki/Developer-Guide)
+          NOTES
+          gh release create "$GITHUB_REF_NAME" assets/RAILGUN.PRG assets/Rail-Gunner-1.0.zip assets/Rail-Gunner-1.0-Build.zip \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --latest \
+            --title 'Rail Gunner 1.0' --notes-file release-notes.md

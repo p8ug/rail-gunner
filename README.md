@@ -1,6 +1,6 @@
-# Rail Gunner R30
+# Rail Gunner 1.0
 
-[Beta downloads](https://github.com/p8ug/rail-gunner/releases) · [Player and developer wiki](https://github.com/p8ug/rail-gunner/wiki) · [Contributing](CONTRIBUTOR.md)
+[Download Rail Gunner 1.0](https://github.com/p8ug/rail-gunner/releases/tag/v1.0.0) · [Player and developer wiki](https://github.com/p8ug/rail-gunner/wiki) · [Contributing](CONTRIBUTOR.md)
 
 Rail Gunner is an original grid shooter for the Commander X16. Your one-cell ship faces up and starts with a single gun in the center. At wave 6, two guns fire on either side of the ship. At wave 12, the center gun joins them. At either wall, the outside lane drops away. Each round hits at most one target.
 
@@ -63,7 +63,7 @@ LOAD"RAILGUN.PRG",8,1
 RUN
 ```
 
-The build ZIP includes the original PRG as `RAILGUN-R30-REFERENCE.PRG`. The build scripts produce `build/RAILGUN.PRG` with the soundtrack embedded.
+The build ZIP includes the original PRG as `RAILGUN-1.0-REFERENCE.PRG`. The build scripts produce `build/RAILGUN.PRG` with the soundtrack embedded.
 
 ```sh
 x16emu -c02 -mhz 8 -ram 512 -joy1 -prg RAILGUN.PRG -run -scale 2

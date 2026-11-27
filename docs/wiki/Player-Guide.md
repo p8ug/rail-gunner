@@ -1,6 +1,6 @@
 # Player guide
 
-Download the beta ZIP from [Releases](https://github.com/p8ug/rail-gunner/releases) and extract `RAILGUN.PRG`. On the Commander X16, put it on writable storage so the local leaderboard can save.
+Download [RAILGUN.PRG](https://github.com/p8ug/rail-gunner/releases/download/v1.0.0/RAILGUN.PRG) from the [Rail Gunner 1.0 release](https://github.com/p8ug/rail-gunner/releases/tag/v1.0.0). On the Commander X16, put it on writable storage so the local leaderboard can save.
 
 ```basic
 LOAD"RAILGUN.PRG",8,1
