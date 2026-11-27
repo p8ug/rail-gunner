@@ -7,6 +7,8 @@ input {
     const ubyte START = 32
     const ubyte QUIT = 64
     const ubyte SELECT = 128
+    ; QUIT on the title page ends the program: there is a BASIC prompt to go back to.
+    const bool CAN_EXIT = true
 
     asmsub init() clobbers(A, X) {
         %asm {{

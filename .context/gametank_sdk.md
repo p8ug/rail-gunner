@@ -9,7 +9,9 @@ Read the `prog8-coder` skill for the Prog8 language itself.  This file
 only adds what is specific to the GameTank.
 
 Everything here was tested in a headless GameTank emulator, not on real
-hardware.  "Not tested" is said where it applies.
+hardware.  "Not tested" is said where it applies.  This repository has such
+an emulator: `tools/gametank/gth.cpp`, driven by `tools/gametank/gt.py`
+(`make build/gth`; `make test` uses it).
 
 ## 1. The machine in one page
 
@@ -545,3 +547,49 @@ Put the files next to the Prog8 module that includes them.
 
 To look inside a running game: `build/game.list` has the address of every
 variable, and an emulator's memory view shows RAM.
+
+## 10. Found while porting Rail Gunner
+
+Each of these was seen with p8c 0.6.1-dev; `src/gametank/` has the code.
+
+- **`%memtop` only counts in the main file.**  In an imported module it is
+  ignored.  `%option romable` does work from an imported module, so a
+  program for more than one machine can keep it in a GameTank-only module.
+- **`-o name.gtr` fails** ("can't name the program"), and takes a stale
+  `name.prg` of another target with it.  Use `-out dir`, a directory for
+  each target.
+- **`sys.waitvsync()` waits for up to two frames.**  Use
+  `gametank.await_vsync(1)`, or wait for `cbm.TIME_LO` to change: comparing
+  it with the value at the last wait also shows that a frame took too long,
+  and then there is nothing to wait for.
+- **A call out of a bank changes banks twice**, some 700 cycles, also to
+  the library.  `%option overlay_data` in the calling block makes its calls
+  to the library plain calls.  A block of your own in the fixed bank that
+  is called often from banks needs `%option overlay_safe` for the same; it
+  must never change banks itself.
+- **Put what calls each other every frame in one bank.**  Assembly may
+  `jsr` to a subroutine of another block when both are in the same bank.
+- **A block that nothing refers to is left out**, and a bank with nothing
+  else in it is then not in the image, without a message.
+- **No assembly macro with parameters inside a banked block**: the compiler
+  has the bank's code in a macro of its own, and `\1` is taken as that
+  one's.  Define the macro in a block that is in no bank
+  (`%option force_output`) and call it as `#p8b_block.name`.  Give it the
+  routines it calls as parameters: a macro that names a banked subroutine
+  gets a warning.
+- **A block's assembly can keep data in RAM** with `.section BSS` ...
+  `.send BSS`, for more than the 256 bytes of a Prog8 array.  All RAM
+  together is 6 KB: `-asmlist` and the `BSS` line of `-verbose` show it.
+- **Many small blits: no interrupt, no queue.**  Wait for the queue once,
+  write `DMAFLAGS` with `DMA_ENABLE` and without `DMA_IRQ`, then for each
+  blit set the registers and write 1 to `BLIT_START`.  A blit of w * h
+  pixels is done w * h cycles later; do not write the registers of the
+  next one before that.  Write `flagsMirror` back to `DMAFLAGS` at the
+  end (`gfx.blitBegin`, `gfx.blitEnd`).  A cell of 3 * 4 pixels costs some
+  60 cycles this way, against 600-700 through the queue.
+- **Drawing into the framebuffer that is shown**: toggle
+  `gametank.bankflip` with `BANK_SECOND_FRAMEBUFFER`, and back before the
+  next `flip_pages()` (`gfx.toFront`, `gfx.toBack`).  Good for a page of
+  text that is changed in place.
+- **`tick_music()` costs about 4,000 cycles a frame** while a song plays:
+  it changes banks for the song and back.

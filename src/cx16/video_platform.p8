@@ -509,6 +509,11 @@ video {
         pendingFrame = true
     }
 
+    ; Wait for the start of the next frame.
+    sub vsync() {
+        sys.waitvsync()
+    }
+
     sub present() {
         if pendingFrame {
             setup()

@@ -1,6 +1,6 @@
 # Rail Gunner
 
-Rail Gunner is a grid shooter for the Commander X16. Thread through enemy formations, shoot upward, and watch the moving guns on the left and bottom rails.
+Rail Gunner is a grid shooter for the Commander X16 and the GameTank. Thread through enemy formations, shoot upward, and watch the moving guns on the left and bottom rails.
 
 - [Player Guide](https://github.com/p8ug/rail-gunner/wiki/Player-Guide) covers setup, controls, weapons, and hazards.
 - [Developer Guide](https://github.com/p8ug/rail-gunner/wiki/Developer-Guide) covers offline builds, the code layout, and testing.

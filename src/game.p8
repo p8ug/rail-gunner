@@ -1,12 +1,20 @@
+; Rail Gunner: the game itself, the same on every machine.
+; What a machine does differently is in its _platform modules:
+;   video    the grid of cells, and showing a frame
+;   screens  every page of text, and the layout of the HUD
+;   input    keyboard and gamepads as one byte of buttons
+;   audio    sound effects
+;   music    the soundtrack
+;   storage  where the high scores are kept (used by scores)
 %import syslib
-%import video
-%import input
-%import audio
-%import music
+%import video_platform
+%import input_platform
+%import audio_platform
+%import music_platform
+%import screens_platform
 %import scores
-%zeropage basicsafe
 
-main {
+game {
     const ubyte XMIN = 1
     const ubyte XMAX = 38
     const ubyte YMIN = 4
@@ -153,23 +161,27 @@ main {
     ubyte[LIFE_W] lifeColumns
     ubyte lifeCursor, lifeEvolveCursor, lifeFront, lifeLastColumn, lifePreview
     ubyte[3] letters
+    ubyte[30] rowTargets            ; not zero: a shot could hit something in this row
 
-    sub start() {
+    sub run() {
         input.init()
         audio.init()
         scores.load()
         video.init()
         music.init()
-        title()
+        screens.title()
 
         repeat {
             frame()
             if edge & QUIT != 0 {
                 if menuPage == PLAY_MENU {
-                    break
+                    if input.CAN_EXIT {
+                        break
+                    }
+                    continue
                 }
                 menuPage = PLAY_MENU
-                title()
+                screens.title()
                 continue
             }
             railSeed++
@@ -177,7 +189,7 @@ main {
                 idleFrames++
                 if idleFrames == DEMO_IDLE {
                     attract()
-                    title()
+                    screens.title()
                     idleFrames = 0
                     continue
                 }
@@ -187,7 +199,7 @@ main {
             if menuPage != PLAY_MENU {
                 if edge & (FIRE | START) != 0 {
                     menuPage = PLAY_MENU
-                    title()
+                    screens.title()
                 }
                 continue
             }
@@ -206,10 +218,10 @@ main {
                     if ships == 0 and edge & QUIT == 0 {
                         results()
                     }
-                    title()
+                    screens.title()
                 } else if menuFocus >= SCORES_MENU {
                     menuPage = menuFocus
-                    title()
+                    screens.title()
                 }
             }
         }
@@ -220,7 +232,7 @@ main {
     }
 
     sub frame() {
-        sys.waitvsync()
+        video.vsync()
         video.present()
         held = input.poll()
         edge = held & (previous ^ $ff)
@@ -229,103 +241,15 @@ main {
         music.tick()
     }
 
-    sub title() {
-        video.clear()
-        video.caption(3, 2, 3, "RAIL GUNNER")
-        if menuPage == SCORES_MENU {
-            video.caption(3, 6, 7, "HIGH SCORES")
-            video.caption(3, 8, 15, "LOCAL TOP FIVE")
-            video.caption(3, 9, 15, "ALL MODES AND STARTING WAVES")
-            video.caption(3, 10, 15, "ALL AMMO AND X SHOT SETTINGS")
-            leaderboard(12)
-            video.caption(3, 24, 15, "ESC / SELECT  BACK")
-            return
-        }
-        if menuPage == HELP_MENU {
-            video.caption(3, 5, 7, "CONTROLS & CREDITS")
-            video.caption(3, 7, 15, "ARROWS / D-PAD  MOVE")
-            video.caption(3, 8, 15, "1 UP  GRAVE DOWN  CTRL LEFT  2 RIGHT")
-            video.caption(3, 9, 15, "SPACE / B  FIRE")
-            video.caption(3, 10, 15, "ENTER / START  PAUSE")
-            video.caption(3, 11, 15, "ESC / SELECT  RETURN TO TITLE")
-            video.caption(3, 14, 7, "RAIL GUNS FLASH BEFORE FIRING.")
-            video.caption(3, 15, 7, "PLANTED PODS BLOCK SHOTS.")
-            video.caption(3, 16, 7, "VOLATILE DRONES BLAST NEARBY CELLS.")
-            video.caption(3, 17, 7, "YELLOW GHOSTS MARK INCOMING CELLS.")
-            video.caption(3, 18, 7, "FLY UNDER CELLULAR DRONES TO FIRE.")
-            video.caption(3, 19, 13, "FIVE GREEN PODS CHARGE ONE VOLLEY.")
-            video.caption(3, 20, 15, "IT BREAKS ARMOR AND PODS IN ONE HIT.")
-            video.caption(3, 21, 15, "AMMO PACKS: FLASHING POD OR + RESERVE")
-            video.caption(3, 22, 15, "SHOOT RED XS IN SHOOTABLE MODE.")
-            video.caption(3, 23, 3, "MUSIC: PUNCH YOUR WAY THROUGH")
-            video.caption(3, 24, 15, "BY NORTHIVANASTAN / CC0 1.0")
-            video.caption(3, 27, 15, "ESC / SELECT  BACK")
-            return
-        }
-        video.cell(4, 5, video.SHIP, 1)
-        video.cell(8, 5, video.PULSE, 7)
-        video.cell(13, 5, video.TRAIN, 3)
-        video.cell(17, 5, video.PATROL, 8)
-        video.cell(21, 5, video.ARMORED, 2)
-        video.cell(27, 5, video.CELL, 13)
-        video.cell(32, 5, video.RAIL_POD_SEED, 3)
-        ubyte row
-        for row in 0 to HELP_MENU {
-            video.caption(6, 8 + row * 2, 1, menuLabels[row])
-        }
-        video.caption(3, 26, 15, "UP/DOWN  SELECT   LEFT/RIGHT  CHANGE")
-        video.caption(3, 27, 15, "SPACE/B  OPEN     ESC/SELECT  EXIT")
-        titleValues()
-    }
-
-    ; Pad menu values so changing a choice overwrites the whole previous line.
-    str[] menuLabels = ["PLAY", "MODE", "STARTING WAVE", "AMMO", "X SHOTS", "HIGH SCORES", "CONTROLS & CREDITS"]
-    str[] modeNames = [
-        "CLASSIC    ", "CONWAY LIFE", "HIGHLIFE   ", "RULE 30    ", "RULE 110   "
-    ]
-    str[] modeHelp = [
-        "BUTTERFLY TRAINS SWEEP THE GRID.     ",
-        "THREE NEIGHBORS CREATE A CELL.       ",
-        "LIFE WITH BIRTHS AT THREE OR SIX.    ",
-        "IRREGULAR PATTERNS GROW DOWNWARD.    ",
-        "REPEATING PATTERNS GROW DOWNWARD.    "
-    ]
-    str[] ammoNames = ["UNLIMITED  ", "SLOWDOWN   ", "AUTO-RELOAD", "AMMO PACKS "]
-    str[] ammoHelp = [
-        "AMMO  FULL SPEED WHILE YOU HOLD FIRE ",
-        "AMMO  SLOWS. RELEASE FIRE TO RECOVER ",
-        "AMMO  STOPS TO RELOAD. PODS REFILL   ",
-        "AMMO  FOLLOW FLASHING PODS TO REFILL "
-    ]
-
-    sub titleValues() {
-        video.setup()
-        ubyte row
-        for row in 0 to HELP_MENU {
-            video.cell(4, 8 + row * 2, 32, 7)
-        }
-        video.cell(4, 8 + menuFocus * 2, video.PULSE, 7)
-        video.caption(21, 10, 7, modeNames[mode])
-        video.caption(3, 22, 15, modeHelp[mode])
-        video.digits(21, 12, 7, selectedWave, 5)
-        video.caption(21, 14, 7, ammoNames[ammoMode])
-        video.caption(3, 23, 15, ammoHelp[ammoMode])
-        if shootableX {
-            video.caption(21, 16, 7, "SHOOTABLE  ")
-        } else {
-            video.caption(21, 16, 7, "UNBREAKABLE")
-        }
-    }
-
     sub editTitle() {
         if edge & input.UP != 0 and menuFocus > PLAY_MENU {
             menuFocus--
             audio.menu()
-            titleValues()
+            screens.titleValues()
         } else if edge & input.DOWN != 0 and menuFocus < HELP_MENU {
             menuFocus++
             audio.menu()
-            titleValues()
+            screens.titleValues()
         }
 
         ubyte direction = held & (input.LEFT | input.RIGHT)
@@ -336,14 +260,14 @@ main {
                     mode = 0
                 }
                 audio.menu()
-                titleValues()
+                screens.titleValues()
             } else if direction == input.LEFT and edge & input.LEFT != 0 {
                 if mode == 0 {
                     mode = 5
                 }
                 mode--
                 audio.menu()
-                titleValues()
+                screens.titleValues()
             }
         }
         if menuFocus == AMMO_MENU {
@@ -353,7 +277,7 @@ main {
                     ammoMode = AMMO_UNLIMITED
                 }
                 audio.menu()
-                titleValues()
+                screens.titleValues()
             } else if direction == input.LEFT and edge & input.LEFT != 0 {
                 if ammoMode == AMMO_UNLIMITED {
                     ammoMode = AMMO_PACKS
@@ -361,13 +285,13 @@ main {
                     ammoMode--
                 }
                 audio.menu()
-                titleValues()
+                screens.titleValues()
             }
         }
         if menuFocus == X_SHOTS_MENU and (direction == input.LEFT or direction == input.RIGHT) and edge & direction != 0 {
             shootableX = not shootableX
             audio.menu()
-            titleValues()
+            screens.titleValues()
         }
         if menuFocus != WAVE_MENU or (direction != input.LEFT and direction != input.RIGHT) {
             waveDirection = 0
@@ -409,7 +333,7 @@ main {
             if waveRepeat == 0 or waveRepeat % 12 == 0 {
                 audio.menu()
             }
-            titleValues()
+            screens.titleValues()
         }
     }
 
@@ -451,25 +375,6 @@ main {
         demoMode = false
         audio.silence()
         music.stop()
-    }
-
-    sub leaderboard(ubyte row) {
-        ubyte i
-        for i in 0 to 4 {
-            video.cell(4, row, 49 + i, 14)
-            video.cell(7, row, nameTile(scores.first[i]), 1)
-            video.cell(8, row, nameTile(scores.second[i]), 1)
-            video.cell(9, row, nameTile(scores.third[i]), 1)
-            video.scoreDigits(13, row, 3, scores.points[i])
-            row++
-        }
-    }
-
-    sub nameTile(ubyte letter) -> ubyte {
-        if letter >= 65 and letter <= 90 {
-            return letter - 64
-        }
-        return 32
     }
 
     sub newGame() {
@@ -606,14 +511,7 @@ main {
             video.cell(0, y, video.RAIL, video.BORDER_COLOR)
             video.cell(39, y, video.RAIL, video.BORDER_COLOR)
         }
-        video.caption(1, 1, 14, "SCORE")
-        video.caption(16, 1, 14, "WAVE")
-        video.caption(31, 1, 14, "LIVES")
-        video.caption(1, 28, 14, "CHAIN")
-        video.caption(9, 28, 14, "POWER SHOT")
-        if ammoMode != AMMO_UNLIMITED {
-            video.caption(25, 28, 14, "AMMO")
-        }
+        screens.hudLabels()
         drawHud()
         drawAmmo()
         drawObjects(false)
@@ -622,81 +520,30 @@ main {
         if railEngaged {
             drawRailGun()
         }
-        if demoMode {
-            video.caption(35, 29, 3, "DEMO")
-        }
         video.prepareArena()
         video.showGrid()
     }
 
     sub drawHud() {
-        ubyte i
-        video.scoreDigits(6, 1, 1, points)
-        video.digits(21, 1, 1, wave, 5)
-        video.digits(38, 1, 3, ships as uword, 1)
-        video.digits(7, 28, 7, combo as uword, 1)
-        for i in 0 to CHARGE_MARKS-1 {
-            ubyte shade = 11
-            if i < chargeMarks {
-                shade = 13
-            }
-            video.cell(19 + i, 28, video.BAR, shade)
-        }
-        if chargeMarks == CHARGE_MARKS {
-            video.caption(19, 28, 13, "READY")
-        }
+        screens.drawHud()
         hudDirty = false
     }
 
     sub drawAmmo() {
-        if ammoMode == AMMO_UNLIMITED {
-            ammoDirty = false
-            return
-        } else if ammo == 0 and ammoMode == AMMO_SLOWDOWN {
-            video.caption(30, 28, 7, "SLOW FIRE")
-        } else if ammo == 0 and ammoMode == AMMO_PACKS {
-            if refillX != 0 {
-                video.caption(30, 28, 7, "GET PACK ")
-            } else {
-                video.caption(30, 28, 8, "GET POD  ")
-            }
-        } else if ammo == 0 {
-            video.caption(30, 28, 8, "RELOADING")
-        } else {
-            ubyte shade = 1
-            if ammo <= 8 {
-                shade = 7
-            }
-            video.digits(30, 28, shade, ammo as uword, 2)
-            video.caption(32, 28, 1, "       ")
-        }
+        screens.drawAmmo()
         ammoDirty = false
     }
 
     asmsub eraseObjects() clobbers(A, X, Y) {
         %asm {{
-        eraseSlots .macro
-            ldx #0
-        _loop
-            lda \1,x
-            beq _next
-            lda \2,x
-            ldy \3,x
-            jsr p8b_video.p8s_background
-        _next
-            inx
-            cpx \4
-            bcc _loop
-        .endmacro
-
             ; The VERA address bank and increment were set by video.setup.
-            lda p8b_main.p8v_px
-            ldy p8b_main.p8v_py
+            lda p8b_game.p8v_px
+            ldy p8b_game.p8v_py
             jsr p8b_video.p8s_background
-            #eraseSlots p8b_main.p8v_hp, p8b_main.p8v_ex, p8b_main.p8v_ey, p8b_main.p8v_droneLimit
-            #eraseSlots p8b_main.p8v_sx, p8b_main.p8v_sx, p8b_main.p8v_sy,  #p8b_main.p8c_PULSES
-            #eraseSlots p8b_main.p8v_bx, p8b_main.p8v_bx, p8b_main.p8v_by,  #p8b_main.p8c_BOLTS
-            #eraseSlots p8b_main.p8v_life, p8b_main.p8v_dx, p8b_main.p8v_dy,  #p8b_main.p8c_DROPS
+            #p8b_gamemacros.eraseSlots p8b_game.p8v_hp, p8b_game.p8v_ex, p8b_game.p8v_ey, p8b_game.p8v_droneLimit, p8b_video.p8s_background
+            #p8b_gamemacros.eraseSlots p8b_game.p8v_sx, p8b_game.p8v_sx, p8b_game.p8v_sy,  #p8b_game.p8c_PULSES, p8b_video.p8s_background
+            #p8b_gamemacros.eraseSlots p8b_game.p8v_bx, p8b_game.p8v_bx, p8b_game.p8v_by,  #p8b_game.p8c_BOLTS, p8b_video.p8s_background
+            #p8b_gamemacros.eraseSlots p8b_game.p8v_life, p8b_game.p8v_dx, p8b_game.p8v_dy,  #p8b_game.p8c_DROPS, p8b_video.p8s_background
             rts
         }}
     }
@@ -993,29 +840,20 @@ main {
             }
             if elapsed == 0 or elapsed == 24 {
                 audio.waveCue(elapsed != 0)
-                waveBanner(7)
+                screens.waveBanner(7)
                 if elapsed == 0 {
                     video.showText()
                 }
             } else if elapsed == 9 or elapsed == 33 {
-                waveBanner(11)
+                screens.waveBanner(11)
             }
         }
         arena()
         waveIntro = false
     }
 
-    sub waveBanner(ubyte shade) {
-        video.setup()
-        video.caption(16, 14, shade, "WAVE ")
-        video.digits(21, 14, shade, wave, 5)
-        video.caption(15, 16, shade, "GET READY")
-    }
-
     sub pause() {
-        video.showTextMap()
-        video.setup()
-        video.caption(13, 14, 7, " PAUSED ")
+        screens.paused()
         repeat {
             frame()
             if edge & (FIRE | START | QUIT) != 0 {
@@ -1163,6 +1001,7 @@ main {
 
     sub pulses() {
         ubyte i
+        markRows()
         for i in 0 to PULSES-1 {
             if sx[i] != 0 {
                 hitCell(i)
@@ -1187,6 +1026,9 @@ main {
     sub hitCell(ubyte shotIndex) {
         ubyte x = sx[shotIndex]
         ubyte y = sy[shotIndex]
+        if rowTargets[y] == 0 {
+            return
+        }
         ubyte i = railPodAt(x, y, shootableX)
         if i != $ff {
             impact(x, y)
@@ -1247,27 +1089,80 @@ main {
         }
     }
 
+    ; Most rows that a shot crosses are empty, and looking for a target in each
+    ; of them is most of the work of a busy tick.  So note once, before the shots
+    ; move, which rows have anything that a shot could hit.  While the shots are
+    ; moved nothing changes rows: a wreck leaves its pod and its shards in its
+    ; own cell, and a blast is resolved afterwards.
+    asmsub markRows() clobbers(A, X, Y) {
+        %asm {{
+            ldx #29
+        _clear
+            stz p8v_rowTargets,x
+            dex
+            bpl _clear
+            ldx #0
+        _drones
+            lda p8v_hp,x
+            beq _noDrone
+            ldy p8v_ey,x
+            sta p8v_rowTargets,y
+        _noDrone
+            inx
+            cpx p8v_droneLimit
+            bcc _drones
+            ldx #p8c_RAIL_PODS-1
+        _railPods
+            lda p8v_railPodAge,x
+            beq _noRailPod
+            ldy p8v_railPodY,x
+            sta p8v_rowTargets,y
+        _noRailPod
+            dex
+            bpl _railPods
+            ldx #p8c_DROPS-1
+        _pods
+            lda p8v_life,x
+            beq _noPod
+            ldy p8v_dy,x
+            sta p8v_rowTargets,y
+        _noPod
+            dex
+            bpl _pods
+            ldx #p8c_BOLTS-1
+        _bolts
+            lda p8v_bx,x
+            beq _noBolt
+            ldy p8v_by,x
+            sta p8v_rowTargets,y
+        _noBolt
+            dex
+            bpl _bolts
+            rts
+        }}
+    }
+
     ; These scans run twice per live pulse. Check rows first and preserve slot
     ; order when cells are shared. Only the player can target falling charges.
     asmsub railPodAt(ubyte x @R0, ubyte y @R1, bool includeCharge @Y) clobbers(X) -> ubyte @A {
         %asm {{
             ldx #0
         _loop
-            lda p8b_main.p8v_railPodY,x
-            cmp $04
+            lda p8b_game.p8v_railPodY,x
+            cmp cx16.r1L
             bne _next
-            lda p8b_main.p8v_railPodX,x
-            cmp $02
+            lda p8b_game.p8v_railPodX,x
+            cmp cx16.r0L
             bne _next
-            lda p8b_main.p8v_railPodAge,x
+            lda p8b_game.p8v_railPodAge,x
             beq _next
-            cmp #p8b_main.p8c_RAIL_POD_CHARGE
+            cmp #p8b_game.p8c_RAIL_POD_CHARGE
             bcc _found
             cpy #0
             bne _found
         _next
             inx
-            cpx #p8b_main.p8c_RAIL_PODS
+            cpx #p8b_game.p8c_RAIL_PODS
             bcc _loop
             lda #$ff
             rts
@@ -1282,10 +1177,10 @@ main {
             ldx #0
         _loop
             lda p8v_by,x
-            cmp $04
+            cmp cx16.r1L
             bne _next
             lda p8v_bx,x
-            cmp $02
+            cmp cx16.r0L
             beq _found
         _next
             inx
@@ -1303,17 +1198,17 @@ main {
         %asm {{
             ldx #0
         _loop
-            lda p8b_main.p8v_ey,x
-            cmp $04
+            lda p8b_game.p8v_ey,x
+            cmp cx16.r1L
             bne _next
-            lda p8b_main.p8v_ex,x
-            cmp $02
+            lda p8b_game.p8v_ex,x
+            cmp cx16.r0L
             bne _next
-            lda p8b_main.p8v_hp,x
+            lda p8b_game.p8v_hp,x
             bne _found
         _next
             inx
-            cpx p8b_main.p8v_droneLimit
+            cpx p8b_game.p8v_droneLimit
             bcc _loop
             lda #$ff
             rts
@@ -1327,17 +1222,17 @@ main {
         %asm {{
             ldx #0
         _loop
-            lda p8b_main.p8v_dy,x
-            cmp $04
+            lda p8b_game.p8v_dy,x
+            cmp cx16.r1L
             bne _next
-            lda p8b_main.p8v_dx,x
-            cmp $02
+            lda p8b_game.p8v_dx,x
+            cmp cx16.r0L
             bne _next
-            lda p8b_main.p8v_life,x
+            lda p8b_game.p8v_life,x
             bne _found
         _next
             inx
-            cpx #p8b_main.p8c_DROPS
+            cpx #p8b_game.p8c_DROPS
             bcc _loop
             lda #$ff
             rts
@@ -1456,38 +1351,10 @@ main {
 
     asmsub blastTargets() clobbers(A, X, Y) {
         %asm {{
-        blastSlots .macro
-            ldx #0
-        _loop:
-            lda \1,x
-            beq _next
-            lda \3,x
-            cmp p8v_blastTop
-            bcc _next
-            cmp p8v_blastBottom
-            bcs _next
-            lda \2,x
-            cmp p8v_blastLeft
-            bcc _next
-            cmp p8v_blastRight
-            bcs _next
-            stz \1,x
-            .if \5
-                phx
-                txa
-                jsr p8s_wreck
-                plx
-            .endif
-        _next:
-            inx
-            cpx \4
-            bcc _loop
-        .endmacro
-
-            #blastSlots p8v_hp, p8v_ex, p8v_ey, p8v_droneLimit, true
-            #blastSlots p8v_life, p8v_dx, p8v_dy, #p8c_DROPS, false
-            #blastSlots p8v_bx, p8v_bx, p8v_by, #p8c_BOLTS, false
-            #blastSlots p8v_railPodAge, p8v_railPodX, p8v_railPodY, #p8c_RAIL_PODS, false
+            #p8b_gamemacros.blastSlots p8v_hp, p8v_ex, p8v_ey, p8v_droneLimit, true, p8s_wreck
+            #p8b_gamemacros.blastSlots p8v_life, p8v_dx, p8v_dy, #p8c_DROPS, false, p8s_wreck
+            #p8b_gamemacros.blastSlots p8v_bx, p8v_bx, p8v_by, #p8c_BOLTS, false, p8s_wreck
+            #p8b_gamemacros.blastSlots p8v_railPodAge, p8v_railPodX, p8v_railPodY, #p8c_RAIL_PODS, false, p8s_wreck
             rts
         }}
     }
@@ -2484,10 +2351,7 @@ main {
     }
 
     sub results() {
-        video.clear()
-        video.caption(3, 3, 10, "REACTOR LOST")
-        video.caption(3, 5, 14, "FINAL SCORE")
-        video.scoreDigits(16, 5, 1, points)
+        screens.results()
         audio.start()
         if scores.qualifies(points) {
             initials()
@@ -2497,7 +2361,7 @@ main {
     }
 
     sub continuePrompt() {
-        video.caption(3, 25, 7, "PRESS SPACE / B TO CONTINUE")
+        screens.continuePrompt()
         repeat {
             frame()
             if edge & (FIRE | START | QUIT) != 0 {
@@ -2513,19 +2377,9 @@ main {
         letters[0] = 65
         letters[1] = 65
         letters[2] = 65
-        video.caption(3, 9, 7, "NEW HIGH SCORE")
-        video.caption(3, 15, 15, "UP / DOWN TO CHANGE LETTER")
-        video.caption(3, 16, 15, "LEFT / RIGHT TO CHOOSE SLOT")
-        video.caption(3, 17, 15, "SPACE / B SAVE. SELECT / ESC SKIP.")
+        screens.initialsPage()
         repeat {
-            video.setup()
-            for i in 0 to 2 {
-                ubyte shade = 14
-                if i == slot {
-                    shade = 7
-                }
-                video.cell(4 + i * 2, 12, nameTile(letters[i]), shade)
-            }
+            screens.initialsLetters(slot)
             frame()
             if edge & QUIT != 0 {
                 return
@@ -2533,8 +2387,7 @@ main {
             if edge & (FIRE | START) != 0 {
                 scores.submit(points, letters[0], letters[1], letters[2])
                 if not scores.last_save_ok {
-                    video.setup()
-                    video.caption(3, 20, 10, "SAVE FAILED. SCORE KEPT IN RAM.")
+                    screens.saveFailed()
                     continuePrompt()
                 }
                 return
@@ -2565,4 +2418,60 @@ main {
             }
         }
     }
+}
+
+; The assembly macros of the game.  They are outside its block because on the
+; GameTank that block is in a bank of the cartridge, and there the assembler
+; has it inside a macro of its own, where a macro with parameters cannot be
+; defined.  A macro is no code: this block takes no room.
+gamemacros {
+    %option force_output
+    %asm {{
+        ; Erase the cells of the slots that are in use: \1 says which are,
+        ; \2 and \3 are their columns and rows, \4 the number of slots,
+        ; \5 the routine that erases a cell.
+        eraseSlots .macro
+            ldx #0
+        _loop
+            lda \1,x
+            beq _next
+            lda \2,x
+            ldy \3,x
+            jsr \5
+        _next
+            inx
+            cpx \4
+            bcc _loop
+        .endmacro
+
+        ; Clear the slots that are inside the blast, the same parameters;
+        ; \5 says whether a slot is a drone, which \6 wrecks.
+        blastSlots .macro
+            ldx #0
+        _loop:
+            lda \1,x
+            beq _next
+            lda \3,x
+            cmp p8b_game.p8v_blastTop
+            bcc _next
+            cmp p8b_game.p8v_blastBottom
+            bcs _next
+            lda \2,x
+            cmp p8b_game.p8v_blastLeft
+            bcc _next
+            cmp p8b_game.p8v_blastRight
+            bcs _next
+            stz \1,x
+            .if \5
+                phx
+                txa
+                jsr \6
+                plx
+            .endif
+        _next:
+            inx
+            cpx \4
+            bcc _loop
+        .endmacro
+    }}
 }

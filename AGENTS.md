@@ -23,33 +23,65 @@ Only read `.prog8-reference/.agents/skills/asm6502-coder/SKILL.md`
 when writing or debugging `%asm`, `asmsub`, `extsub`, or `.asm` code.
 
 ## Prog8 project
-- This project is software written in the Prog8 programming language.
-- The prog8c compiler executable can be found in the shell's path as
-  the command `prog8c`. If it is not found, ask how to run the compiler.
+- This project is Rail Gunner, a game written in the Prog8 programming
+  language for two machines: the Commander X16 (`-target cx16`) and the
+  GameTank (`-target gametank`).  `README.md` describes the game.
+- It is built with the p8p8 compiler, which is in the shell's path as the
+  command `p8c`.  If it is not found, ask how to run the compiler.  The
+  GameTank version needs p8p8's `gametank` target and its overlays
+  (`tools/linux/p8p8/docs/OVERLAYS.md`); `prog8c` cannot build it.
+  `prog8c -libsearch` and the reference files are still the way to look
+  things up.
 - This project uses `make` with instructions written in the `Makefile`.
-  - After changing source code run `make check` to syntax check it.
-  - Use `make run` to compile and run on the virtual target.
-  - Run `make test` to validate the output matches expected.
-- When running `prog8c` directly, copy the arguments from the `PCCARGS*`
+  - After changing source code run `make check` to syntax check both
+    versions.
+  - Run `make` to build both, and read what `-meminfo` prints for the
+    GameTank: the fixed bank, the banks and the 6 KB of RAM are limits.
+  - Run `make test`: see "Testing" below.
+  - `make cx16` and `make run` start the emulators with a window; they do
+    not return until the window is closed.
+- When running `p8c` directly, copy the arguments from the `PCCARGS*`
   variables in the `Makefile`.  Use `-check` for a fast syntax-only pass
-  and `-out build/` to keep the project clean.
-- Prefer the virtual target (`-target virtual`) since it needs no emulator.
-  Even target specific programs can test target independent logic on it.
+  and `-out build/<target>` to keep the project clean: each target needs a
+  directory of its own, and `-o` does not work for the GameTank.
+- There is no build for the virtual target: the game is its machines'
+  video, input and sound.  Test logic that both machines share on the
+  GameTank, with `make test`.
 
 ## Repository rules
 
-- Source code goes in `src/`; the toplevel source file is usually
-  `src/main.p8`.
-- Target specific (non-portable) code goes in a target directory such as
-  `src/c64/` or `src/virtual/`, in a file named after the module with
-  `_platform.p8` appended, e.g. `src/c64/input_platform.p8` imported with
-  `%import input_platform`.
+- Source code goes in `src/`; the toplevel source file is
+  `src/rail_gunner.p8`.  The game is `src/game.p8`, the same for both
+  machines; `src/scores.p8` is the high score table.
+- Target specific (non-portable) code goes in the target's directory,
+  `src/cx16/` or `src/gametank/`, in a file named after the module with
+  `_platform.p8` appended, e.g. `src/cx16/input_platform.p8` imported with
+  `%import input_platform`.  Both directories have the same set: `video`,
+  `screens`, `input`, `audio`, `music`, `storage` and `target`.  A routine
+  that the game calls has to be in both, with the same parameters.
 - `-srcdirs` always includes `src` plus only the current target's
   directory, so the right `_platform.p8` is picked up:
-  `-srcdirs src:src/c64` with `-target c64`, `-srcdirs src:src/virtual`
-  with `-target virtual`.
+  `-srcdirs src:src/cx16` with `-target cx16`, `-srcdirs src:src/gametank`
+  with `-target gametank`.
+- A change to `src/game.p8` or `src/scores.p8` changes both versions:
+  build and check both.  Assembly there names the virtual registers
+  (`cx16.r0L`), never their addresses, which differ between the machines.
+- On the GameTank the game is in a bank of the cartridge
+  (`src/gametank/target_platform.p8` says what is where).  Read
+  `.context/gametank_sdk.md`, section 10 above all, before changing how
+  blocks call each other.
 - Try to use portable libraries, and create portable libraries and code
   as much as possible.  Ask questions if you're unsure.
+
+## Things to keep working
+
+Cellular growth stops at row 24.  Rows 25-26 allow an upward shot from
+outside a volatile cell's blast.  The one-, two-, and three-gun layouts
+are reached on waves 1, 6, and 12: test weapon and movement edits at those
+and at both walls.  A full refill in Ammo Packs is 40 volleys.  X Shots is
+Shootable by default.  The X16 version keeps the score file names of Ion
+Break (`ionbreak.sco`, `ionbreak.bak`) and reads its files.  Preserve the
+music credit in the README and the wiki.
 
 # Agent context
 
@@ -137,9 +169,25 @@ Directories with some example code written in Prog8:
 
 ## Testing Prog8 source code changes
 
-`make test` compiles for the virtual target, runs it with `prog8c -emu`
-(using `-plaintext` and `-quiet` so stdout is clean), and diffs the output
-against `tests/expected/`.  New features need new expected files and a
-matching change to the `test` target in the `Makefile`.
+`make test` builds both versions and runs the GameTank version in `gth`, a
+GameTank without a window (`tools/gametank/gth.cpp`; it needs a C++
+compiler).  `tests/gametank_test.py` presses buttons, reads the program's
+variables by name and prints a line for each thing it checks: the pages of
+the menu, a short game in every mode and its speed, pause, the demo, and
+saving the high scores to flash.  The output is compared with
+`tests/expected/gametank.txt`.  It takes about 20 seconds.
+
+- A page of text is checked by the CRC of the picture.  When a page is
+  changed on purpose, look at it
+  (`python3 tools/gametank/gt.py shot build/page.ppm --frames 0` for the
+  title page) before putting the new line in the expected file.
+- `tools/gametank/gt.py speed` and `gt.py profile` measure the speed of a
+  game and where the time of a frame goes.  A GameTank frame is 59,659
+  cycles; measure after a change to anything that runs every tick.
+- The Commander X16 version has no automatic test.  After a change that
+  reaches it, run it in x16emu (the `x16` debugger tools, when there are
+  any, can load `build/cx16/rail_gunner.prg`, write memory and take a
+  screenshot): the attract demo starts after 12 idle seconds on the title
+  page and shows the arena, the HUD and play.
 
 Ask before changing any of the tests.
