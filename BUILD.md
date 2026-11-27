@@ -7,7 +7,7 @@ Extract the entire ZIP. The build uses the included p8p8 0.6.0 compiler, standar
 | Windows x64 | Run `build.cmd` in Command Prompt |
 | Linux x86-64 with glibc 2.38 or newer | Run `sh build.sh` |
 
-Both scripts write **`build/RAILGUN.PRG`**. `ionbreak.p8` is the main Prog8 source file. See [README.md](README.md) for loading the PRG on the X16 and running it in an emulator.
+Both scripts write **`build/RAILGUN.PRG`**. `rail_gunner.p8` is the main Prog8 source file. See [README.md](README.md) for loading the PRG on the X16 and running it in an emulator.
 
 The archive includes the released binary as `RAILGUN-R30-REFERENCE.PRG`. Compare a fresh build to that reference with `fc /b RAILGUN-R30-REFERENCE.PRG build\RAILGUN.PRG` on Windows or `cmp RAILGUN-R30-REFERENCE.PRG build/RAILGUN.PRG` on Linux. The released SHA-256 is `df48d71bd8f935235105e186d6bd79f238af306d84e9017bed78bf9ce92f6a3e`.
 

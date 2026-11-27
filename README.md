@@ -68,7 +68,7 @@ The build ZIP includes the original PRG as `RAILGUN-R30-REFERENCE.PRG`. The buil
 ```sh
 x16emu -c02 -mhz 8 -ram 512 -joy1 -prg RAILGUN.PRG -run -scale 2
 mkdir -p build
-p8c -target cx16 -out build ionbreak.p8
+p8c -target cx16 -out build rail_gunner.p8
 ```
 
 Build with p8p8 v0.6.0 and 64tass. The optional music regeneration step is `python3 arrange_music.py` with Python and Mido. This regenerates `PUNCH.ZSM` and `music_data.p8` from the included source MIDI.

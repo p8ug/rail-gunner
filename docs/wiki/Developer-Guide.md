@@ -4,7 +4,7 @@ Clone [p8ug/rail-gunner](https://github.com/p8ug/rail-gunner) and work from `mai
 
 | File | Responsibility |
 |---|---|
-| `ionbreak.p8` | Entry point, menus, player, formations, rail hazards, scoring logic and gameplay updates |
+| `rail_gunner.p8` | Entry point, menus, player, formations, rail hazards, scoring logic and gameplay updates |
 | `video.p8` | Tile art, VERA setup, draw buffers, tile-map presentation |
 | `input.p8` | Keyboard and SNES input |
 | `audio.p8`, `music.p8` | PSG effects and YM2151 playback |

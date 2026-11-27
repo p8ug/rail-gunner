@@ -1,0 +1,54 @@
+name: Publish Rail Gunner R30 beta
+
+on:
+  push:
+    tags:
+      - v0.1.0-beta.2
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the tagged source
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --depth=1 origin "refs/tags/$GITHUB_REF_NAME"
+          git checkout --detach FETCH_HEAD
+
+      - name: Verify the offline build
+        run: |
+          sh build.sh
+          cmp RAILGUN-R30-REFERENCE.PRG build/RAILGUN.PRG
+          sha256sum build/RAILGUN.PRG
+
+      - name: Package runtime and source
+        run: |
+          mkdir -p staging/Rail-Gunner assets
+          cp build/RAILGUN.PRG README.md REPLAY-RESULTS.md staging/Rail-Gunner/
+          (cd staging && zip -q -r ../assets/Rail-Gunner-R30.zip Rail-Gunner)
+          git archive --format=zip --prefix=Rail-Gunner-R30-Build/ \
+            --output=assets/Rail-Gunner-R30-Build.zip HEAD
+          unzip -tq assets/Rail-Gunner-R30.zip
+          unzip -tq assets/Rail-Gunner-R30-Build.zip
+
+      - name: Publish the beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Rail Gunner is a grid shooter for the Commander X16. This beta targets a 65C02 at 8 MHz with 512 KB.
+
+          - **Rail-Gunner-R30.zip** contains the ready-to-run RAILGUN.PRG.
+          - **Rail-Gunner-R30-Build.zip** contains the complete source, music, and offline Windows and Linux build tools.
+
+          Play Classic or four cellular modes. Choose an ammo rule and whether the red X projectiles can be shot down. The build reproduces the released PRG byte for byte on Linux. Gameplay was tested in X16Emu R49 with keyboard and virtual SNES input. Native Windows builds and physical hardware still need verification. Forced large explosion cascades can exceed the 60 Hz frame budget.
+
+          [Player Guide](https://github.com/p8ug/rail-gunner/wiki/Player-Guide) · [Developer Guide](https://github.com/p8ug/rail-gunner/wiki/Developer-Guide)
+          NOTES
+          gh release create "$GITHUB_REF_NAME" assets/Rail-Gunner-R30.zip assets/Rail-Gunner-R30-Build.zip \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title 'Rail Gunner R30 Beta' --notes-file release-notes.md

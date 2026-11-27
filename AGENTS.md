@@ -1,6 +1,6 @@
 # Rail Gunner contributor handoff
 
-The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. This source snapshot is R30, published as the project's first beta. The project was previously called Ion Break, which explains the source filename and existing high-score compatibility.
+The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. This source snapshot is R30. Beta tags point to the source used to build release assets. The project was previously called Ion Break. The game uses the existing save filenames so players keep their high scores.
 
 ## Build and verify
 
@@ -11,7 +11,7 @@ The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. This
 
 ## Code map
 
-- `ionbreak.p8` owns the menus, game loop, player, forms of growth, rail machinery, ammo, and collisions. It is the compiler entry point.
+- `rail_gunner.p8` owns the menus, game loop, player, forms of growth, rail machinery, ammo, and collisions. It is the compiler entry point.
 - `video.p8` owns VERA tile setup, the two playfield tile maps, buffered cell writes, and display assets.
 - `input.p8` unifies keyboard and SNES controls. `audio.p8` drives the VERA PSG. `music.p8` plays embedded YM2151 music from `music_data.p8`.
 - `scores.p8` validates and writes the two-slot score files. Keep the existing filenames and compatibility with Ion Break scores.
