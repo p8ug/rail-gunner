@@ -1,26 +1,145 @@
-# Rail Gunner contributor handoff
+# AGENTS
 
-The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. Rail Gunner 1.0 is the first stable release. It uses the tested R30 game binary. Release tags point to the source used to build their assets. The project was previously called Ion Break. The game uses the existing save filenames so players keep their high scores.
+## Setup check
 
-## Build and verify
+Before any Prog8 work, check that `.prog8-reference/VERSION` exists.  If it
+does not, the reference files have not been downloaded yet: stop and ask
+the user to run `python3 setup.py` (or `py setup.py` on Windows) from the
+repository root, or offer to run it yourself.  Do not continue without
+the reference files.
 
-- Read [BUILD.md](BUILD.md). The compiler is p8p8 0.6.0 and the assembler is 64tass 1.60.3243. Run `sh build.sh` or `build.cmd`, then use `build/RAILGUN.PRG`.
-- The 1.0 reference binary in the repository has SHA-256 `df48d71bd8f935235105e186d6bd79f238af306d84e9017bed78bf9ce92f6a3e`. An untouched checkout should build byte for byte. Rebuild after any code edit and validate the changed behavior.
-- Target the 65C02 Commander X16 at 8 MHz and 512 KB. X16Emu R49 is the tested emulator. The Linux build and offline soundtrack regeneration have been reproduced. The native Windows build script and physical console still need a run.
-- Conventional gameplay replays are within the 60 Hz budget. The forced 36-drone cascade can overrun it. See [REPLAY-RESULTS.md](REPLAY-RESULTS.md) for scenarios and revision-specific readings. The game sits close to the end of unbanked RAM, so check the compiler's `-meminfo` report when adding code or data.
+## Agent skills
 
-## Code map
+The author of the Prog8 compiler has created agent skill files for writing
+software with Prog8 and 6502 assembler.
 
-- `rail_gunner.p8` owns the menus, game loop, player, forms of growth, rail machinery, ammo, and collisions. It is the compiler entry point.
-- `video.p8` owns VERA tile setup, the two playfield tile maps, buffered cell writes, and display assets.
-- `input.p8` unifies keyboard and SNES controls. `audio.p8` drives the VERA PSG. `music.p8` plays embedded YM2151 music from `music_data.p8`.
-- `scores.p8` validates and writes the two-slot score files. Keep the existing filenames and compatibility with Ion Break scores.
-- The MIDI, `arrange_music.py`, and the checked-in ZSM reproduce the embedded arrangement. Preserve the music credit in the README and wiki.
+Note that any file references in the skills files below are relative
+to the `.prog8-reference` directory.
 
-## Regression checkpoints
+Read `.prog8-reference/.agents/skills/prog8-coder/SKILL.md` when writing or
+reviewing Prog8 code (skip this if your tool already loaded it as a skill).
 
-Cellular growth stops at row 24. Rows 25–26 allow an upward shot from outside a volatile cell's blast. The one-, two-, and three-gun layouts are reached on waves 1, 6, and 12. Test weapon and movement edits at those breakpoints and at both walls. A full refill in Ammo Packs is 40 volleys. X Shots is Shootable by default, with Unbreakable as the harder choice. Test menu navigation and simultaneous movement and fire on both keyboard and SNES after control changes.
+Only read `.prog8-reference/.agents/skills/asm6502-coder/SKILL.md`
+when writing or debugging `%asm`, `asmsub`, `extsub`, or `.asm` code.
 
-For each release, attach a standalone `RAILGUN.PRG` alongside the runtime and build ZIPs. Verify that the direct PRG and the runtime ZIP contain the same binary.
+## Prog8 project
+- This project is software written in the Prog8 programming language.
+- The prog8c compiler executable can be found in the shell's path as
+  the command `prog8c`. If it is not found, ask how to run the compiler.
+- This project uses `make` with instructions written in the `Makefile`.
+  - After changing source code run `make check` to syntax check it.
+  - Use `make run` to compile and run on the virtual target.
+  - Run `make test` to validate the output matches expected.
+- When running `prog8c` directly, copy the arguments from the `PCCARGS*`
+  variables in the `Makefile`.  Use `-check` for a fast syntax-only pass
+  and `-out build/` to keep the project clean.
+- Prefer the virtual target (`-target virtual`) since it needs no emulator.
+  Even target specific programs can test target independent logic on it.
 
-Before a handoff, record the commit, changed behavior, build/hash, actual checks, and any open verification in the pull request or release notes. [CONTRIBUTOR.md](CONTRIBUTOR.md) covers contributions and wiki maintenance.
+## Repository rules
+
+- Source code goes in `src/`; the toplevel source file is usually
+  `src/main.p8`.
+- Target specific (non-portable) code goes in a target directory such as
+  `src/c64/` or `src/virtual/`, in a file named after the module with
+  `_platform.p8` appended, e.g. `src/c64/input_platform.p8` imported with
+  `%import input_platform`.
+- `-srcdirs` always includes `src` plus only the current target's
+  directory, so the right `_platform.p8` is picked up:
+  `-srcdirs src:src/c64` with `-target c64`, `-srcdirs src:src/virtual`
+  with `-target virtual`.
+- Try to use portable libraries, and create portable libraries and code
+  as much as possible.  Ask questions if you're unsure.
+
+# Agent context
+
+## Prog8 language overview
+
+The `.prog8-reference` directory holds the Prog8 and 6502 assembler portions
+of the upstream Prog8 compiler repository: agent skills, docs, the grammar,
+the standard library and example code.  It is generated by `setup.py` to
+match the installed `prog8c` version, which is recorded in
+`.prog8-reference/VERSION`.
+
+The syntax of the Prog8 language is documented in an ANTLR4 grammar file.
+If a syntax question isn't answered by an existing skill file or a `-check`
+message, grep `.prog8-reference/parser/src/main/antlr/Prog8ANTLR.g4` for the rule.
+
+There is documentation in `.prog8-reference/docs/source` and below is a
+table of the most relevant files to view.
+Do not blindly read all of the files.  Use the command below, replacing `libraries.rst`
+with the appropriate file, to see the section headers.
+
+`awk 'NR>1 && /^[\^\*=~-]+$/ && prev ~ /^[A-Za-z]/ {print (NR-1) ": " prev} {prev=$0}' .prog8-reference/docs/source/libraries.rst`
+
+|Filename|
+|--------|
+|`compiling.rst`|
+|`libraries.rst`|
+|`programming.rst`|
+|`structpointers.rst`|
+|`targetsystem.rst`|
+|`variables.rst`|
+
+
+## Prog8 context files
+
+These files in `.context/` must only add what the upstream skills don't
+already cover.
+
+| Filename                       |Status|Description|
+|--------------------------------|------|-----------|
+| `modules.md`         |partial|Prog8 standard library modules|
+| `versions.md`         |partial|Prog8 compiler versions and their features|
+| `gametank_sdk.md`     |complete|GameTank game development: the SDK routines of the `gametank` target, with examples|
+
+Only look in `.context/versions.md` if there is a possible compiler bug.
+
+Read `.context/gametank_sdk.md` before writing or changing a GameTank program.
+
+### Finding context
+- When grepping in `.prog8-reference` add `--include=*.p8` to limit the
+searches to only Prog8 source code.
+- A compact list of every library module, subroutine and signature for
+each target is in
+`.prog8-reference/docs/source/_static/symboldumps/skeletons-<target>.txt`.
+Grep it rather than reading it whole.
+
+## Prog8 standard library code
+
+The preferred way to search the standard library is `prog8c -libsearch`
+with a quoted regex:
+- `prog8c -libsearch 'sub\s+print\s?\('` finds the definitions of `print`.
+- `prog8c -libsearch 'txt\.print_ub'` finds uses of `txt.print_ub`.
+
+Normally it is not necessary, but `prog8c -libdump build/` dumps the
+library source for the exact compiler in use into `build/prog8lib-*`.
+Run `make clean` first if a different compiler version was used before,
+so only one matching directory exists.
+
+The library source is also in `.prog8-reference/compiler/res/prog8lib/`
+(never read whole files), but it may not match the `prog8c` binary if
+the compiler was changed after `setup.py` was run, so trust `-libsearch`
+and `-libdump` results over it.
+
+When using versions of `prog8c` older than v12.2, warn the user and ask if they
+want to proceed with the older version of the compiler.
+
+## Prog8 sample code
+Do not blindly read whole example files.  Use `grep`.
+
+Directories with some example code written in Prog8:
+- `.prog8-reference/examples/`
+- `.prog8-reference/benchmark-program/`
+- `.prog8-reference/benchmark-c/`
+- `.prog8-reference/compiler/test/arithmetic/`
+- `.prog8-reference/compiler/test/comparisons/`
+
+## Testing Prog8 source code changes
+
+`make test` compiles for the virtual target, runs it with `prog8c -emu`
+(using `-plaintext` and `-quiet` so stdout is clean), and diffs the output
+against `tests/expected/`.  New features need new expected files and a
+matching change to the `test` target in the `Makefile`.
+
+Ask before changing any of the tests.
