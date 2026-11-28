@@ -94,6 +94,7 @@ video {
         ; target.boot() loaded the pictures
         arenaShown = false
         clearMap()
+        dbg.step(13)
     }
 
     sub close() {
@@ -104,9 +105,11 @@ video {
     ; Wait for the next frame.  When the tick took longer than a frame there
     ; is no wait: the game slows down by what it is late, not to half speed.
     sub vsync() {
+        dbg.once(22)
         while cbm.TIME_LO == lastJiffy {
         }
         lastJiffy = cbm.TIME_LO
+        dbg.once(23)
     }
 
     sub setup() {
@@ -167,7 +170,9 @@ video {
         arenaShown = false
         pendingFrame = false
         gfx.toFront()
+        dbg.step(16)
         gfx.clearScreen()
+        dbg.step(17)
     }
 
     sub clear() {

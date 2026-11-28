@@ -338,6 +338,12 @@ if gametank.player1_new_buttons & gametank.INPUT_MASK_A != 0 {
 }
 ```
 
+**A port with no gamepad in it reads as every button held down** on a
+console: `player2_buttons` is `$3f3c` (`INPUT_MASK_ALL_KEYS`) when only
+port 1 is used.  GameTankEmulator gives 0 there.  So do not combine the two
+ports (`player1_buttons | player2_buttons`) to let either gamepad play; read
+port 1, or leave out a pad that reports up and down together.
+
 For paddle controllers: `gametank.update_paddle_inputs()` in place of
 `update_inputs()`, the `INPUT_MASK_PADDLE_` masks, and
 `gametank.get_paddle_rotation(port)`.  Not tested with a paddle.
@@ -593,3 +599,18 @@ Each of these was seen with p8c 0.6.1-dev; `src/gametank/` has the code.
   text that is changed in place.
 - **`tick_music()` costs about 4,000 cycles a frame** while a song plays:
   it changes banks for the song and back.
+- **What only a console showed** (GameTankEmulator ran the program well
+  each time):
+  - The pins that change the cartridge's bank are inputs after a reset.
+    Without `VIA1DDRA = %00000111` before the first bank change every bank
+    reads as `$ff`: the logo plays (fixed bank), then a black screen at the
+    first call into a bank.  p8p8's `startup.asm` sets it now; an older
+    one did not.  `gth` knows the direction register, so `make test` fails
+    without it.
+  - An empty gamepad port reads as all buttons held: section 5.1.
+  - Flash that another program saved to is not `$ff`: check what is read
+    from the save bank before using it as a length or an index.
+  - `make debug` builds a cartridge that shows how far it got, what the
+    banks read as and what the gamepads report
+    (`src/gametank/debug/dbg.p8`).  Writing the whole 2 MB image to a
+    cartridge is slow, so put several questions in one debug build.

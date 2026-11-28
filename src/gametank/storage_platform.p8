@@ -25,12 +25,21 @@ storage {
     ; Read what is in a slot (0 or 1), at most size bytes.
     ; Returns how many bytes that was: 0 when there is nothing.
     sub read(ubyte slot, uword buffer, uword size) -> uword {
+        dbg.step(9 + slot)
         uword at = target.lastRecord(sector(slot), STRIDE)
+        dbg.step(11 + slot)
         if at == 0 {
             return 0
         }
+        ; something is there: of this game, or of another that was on the
+        ; cartridge before
+        dbg.step(32 + slot)
         gametank.save_read(at, &record, STRIDE)
         ubyte count = record[0]
+        if count == 0 {
+            dbg.step(34 + slot)
+            return 0
+        }
         if count >= STRIDE or count > size {
             return 0
         }

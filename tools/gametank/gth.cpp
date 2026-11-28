@@ -187,13 +187,15 @@ static void mem_write(uint16_t a, uint8_t v) {
     } else if (a >= 0x3000) aram[a & 0xfff] = v;
     else if (a & 0x2000) {
         if (a & 0x800) {
-            if ((a & 15) == 1) {
-                // the cartridge's bank: shifted in a bit at a time, then latched
-                uint8_t old = via[1];
-                uint8_t rising = v & ~old;
-                if (rising & 1) bank_shifter = ((bank_shifter << 1) & 0xfe) | !!(old & 2);
-                else if (rising & 4) bank_mask = bank_shifter | 0x80;
-            }
+            // The cartridge's bank is shifted in a bit at a time on port A,
+            // then latched.  Only the pins that the direction register (3)
+            // makes outputs are driven; it is 0 after a reset, as on a 6522.
+            uint8_t old = via[1] & via[3];
+            via[a & 15] = v;
+            uint8_t now = via[1] & via[3];
+            uint8_t rising = now & ~old;
+            if (rising & 1) bank_shifter = ((bank_shifter << 1) & 0xfe) | !!(old & 2);
+            else if (rising & 4) bank_mask = bank_shifter | 0x80;
             via[a & 15] = v;
         } else if ((a & 15) == 7) {
             blit_catchup();

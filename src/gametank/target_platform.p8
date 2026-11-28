@@ -10,6 +10,7 @@
 %import gametank
 %import gametank_banking
 %import gfx
+%import dbg
 
 %overlay banks.GAME, game, video, screens, input, audio, music
 %overlay banks.PAGES, pages, scores, storage
@@ -27,8 +28,11 @@ target {
     ; starts the sound chip and the music player, then the pictures.
     sub boot() {
         gametank.sdk_init()
+        dbg.step(1)
         gametank.init_graphics()
+        dbg.step(2)
         gfx.init()
+        dbg.report()
     }
 
     ; The address of the last used record of a save sector, or 0 when the

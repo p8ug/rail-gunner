@@ -7,6 +7,7 @@ music {
 
     ; target.boot() started the player
     sub init() {
+        dbg.step(14)
     }
 
     sub start() {

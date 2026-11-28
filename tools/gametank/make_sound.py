@@ -235,9 +235,17 @@ def effects():
         "menu": effect(menu_tone, t["menu_gain"][:5], buzz=0),
         "dry": effect(t["dry_pitch"], t["dry_gain"], grain=t["dry_pitch"], noise=t["dry_gain"]),
         "pickup": effect(t["pickup_pitch"], t["pickup_gain"], buzz=0),
-        "shot": effect(t["shot_pitch"], t["shot_gain"], grain=t["shot_grain"], noise=t["shot_noise"]),
-        "hit": effect(t["hit_pitch"], t["hit_gain"], grain=4410, noise=t["hit_noise"]),
-        "blast": effect(t["blast_pitch"], t["blast_gain"], grain=t["blast_grain"], noise=t["blast_noise"]),
+        # On the X16 a shot, a hit and a blast are a tone with noise, each on
+        # voices of its own.  Here the three share a channel, and with the guns
+        # at full auto and many hits the noise was all that was heard, without
+        # an end (on a console).  So they are short, and mostly tone:
+        # the shot is its tone only, falling, three frames at half the loudness;
+        "shot": effect(t["shot_pitch"][:3], [gain // 2 for gain in t["shot_gain"][:3]], buzz=0),
+        # a hit is a quick boom: the low end of its tone, noise in the first frame;
+        "hit": effect(t["hit_pitch"][2:5], [48, 35, 18], grain=4410, noise=[40, 0, 0]),
+        # a blast is every other frame of the X16's, seven of them, noise in two.
+        "blast": effect(t["blast_pitch"][0:14:2], t["blast_gain"][0:14:2], grain=t["blast_grain"][0:14:2],
+                        noise=[50, 30, 0, 0, 0, 0, 0]),
         "warn": effect(t["warn_pitch"], t["warn_gain"], buzz=4),
         "launch": effect(t["launch_pitch"], t["launch_gain"], grain=t["launch_grain"], noise=t["launch_noise"]),
         "down": effect(t["down_pitch"], t["down_gain"], grain=t["down_grain"], noise=t["down_noise"]),

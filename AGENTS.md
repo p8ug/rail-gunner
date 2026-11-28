@@ -40,6 +40,10 @@ when writing or debugging `%asm`, `asmsub`, `extsub`, or `.asm` code.
   - Run `make test`: see "Testing" below.
   - `make cx16` and `make run` start the emulators with a window; they do
     not return until the window is closed.
+  - `make debug` builds the GameTank version that shows on the screen how
+    far it got, for a fault that only a console has: `BUILD.md`, "On a
+    console".  The emulators do not show everything a console does;
+    `.context/gametank_sdk.md`, section 10, has what was found.
 - When running `p8c` directly, copy the arguments from the `PCCARGS*`
   variables in the `Makefile`.  Use `-check` for a fast syntax-only pass
   and `-out build/<target>` to keep the project clean: each target needs a

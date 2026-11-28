@@ -20,7 +20,7 @@ x16emu -c02 -mhz 8 -ram 512 -joy1 -prg RAILGUN.PRG -run -scale 2
 | Pause or resume | Enter | Start |
 | Return, or quit from the title screen | Esc | Select |
 
-On the GameTank the game is a cartridge image, `rail_gunner.gtr`, for GameTankEmulator or a flash cartridge; it is built from the source and has no release yet. Either gamepad works: the D-pad moves, A or B fires and opens a menu item, Start pauses, and C goes back. The scores are saved in the cartridge. The rules are the same; the arena is drawn much smaller, 3 by 4 pixels to a cell.
+On the GameTank the game is a cartridge image, `rail_gunner.gtr`, for GameTankEmulator or a flash cartridge; it is built from the source and has no release yet. The gamepad goes in port 1: the D-pad moves, A or B fires and opens a menu item, Start pauses, and C goes back. The scores are saved in the cartridge. The rules are the same; the arena is drawn much smaller, 3 by 4 pixels to a cell.
 
 On the X16 the movement aliases are 1 for up, grave for down, Left Ctrl for left, and 2 for right. Hold Fire for auto-fire. You start with one gun, get two side guns at wave 6, and add the center gun at wave 12. The outward gun cannot fire off the grid.
 

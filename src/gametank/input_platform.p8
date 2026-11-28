@@ -1,4 +1,4 @@
-; Rail Gunner input for the GameTank: both gamepads, as the game's one byte
+; Rail Gunner input for the GameTank: the first gamepad, as the game's one byte
 ; of buttons.  A and B fire, START pauses, C goes back.
 %import gametank
 %import gametank_input
@@ -18,14 +18,19 @@ input {
     const bool CAN_EXIT = false
 
     sub init() {
+        dbg.step(7)
     }
 
     sub shutdown() {
     }
 
+    ; Only the gamepad in port 1 is read.  A port with nothing in it does
+    ; not have to read as "nothing pressed" on a console (in GameTankEmulator
+    ; it does), so the two cannot simply be taken together.
     sub poll() -> ubyte {
         gametank.update_inputs()
-        uword pads = gametank.player1_buttons | gametank.player2_buttons
+        dbg.once(24)
+        uword pads = gametank.player1_buttons
         ubyte state = 0
         if pads & gametank.INPUT_MASK_UP != 0 {
             state |= UP

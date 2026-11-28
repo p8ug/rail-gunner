@@ -39,6 +39,7 @@ pages {
     ]
 
     sub title() {
+        dbg.step(15)
         video.clear()
         if game.menuPage == game.SCORES_MENU {
             gfx.heading(20, 10, "HIGH SCORES")
@@ -69,6 +70,7 @@ pages {
             return
         }
         gfx.heading(20, 9, "RAIL GUNNER")
+        dbg.step(18)
         ; a rail gun on either side of the name, one of them mirrored
         gfx.picture(13, 10, 13, gametank.SPRITE_FLIP_NONE)
         gfx.picture(13, 118, 13, gametank.SPRITE_FLIP_X)
@@ -82,13 +84,16 @@ pages {
         gfx.picture(17, 96, 31, gametank.SPRITE_FLIP_NONE)
         gfx.picture(11, 112, 31, gametank.SPRITE_FLIP_NONE)
         gametank.await_draw_queue()
+        dbg.step(19)
         ubyte row
         for row in 0 to game.HELP_MENU {
             gfx.text(LEFT, MENU_TOP + row * MENU_STEP, 1, menuLabels[row])
         }
         gfx.text(2, 107, 15, "UP/DOWN SELECT  LEFT/RIGHT SET")
         gfx.text(2, 113, 15, "A OPEN  C BACK")
+        dbg.step(20)
         titleValues()
+        dbg.step(21)
     }
 
     sub titleValues() {

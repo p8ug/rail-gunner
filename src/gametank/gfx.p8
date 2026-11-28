@@ -41,10 +41,14 @@ gfx {
 
     sub init() {
         gametank.text_init()
+        dbg.step(3)
         void gametank.text_load_font()
+        dbg.step(4)
         tilesSlot = gametank.allocate_sprite(&gfxdata.tiles, banks.ASSETS)
         gametank.set_sprite_frametable(tilesSlot, &gfxdata.frames, banks.ASSETS)
+        dbg.step(5)
         fontSlot = gametank.allocate_sprite(&gfxdata.font, banks.ASSETS)
+        dbg.step(6)
         tilesX = (tilesSlot & gametank.SPRITE_OFFSET_X_MASK) << 4
         tilesY = (tilesSlot & gametank.SPRITE_OFFSET_Y_MASK) << 3
         fontX = (fontSlot & gametank.SPRITE_OFFSET_X_MASK) << 4

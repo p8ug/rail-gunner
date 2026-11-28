@@ -3,7 +3,8 @@
 ;
 ; Shots, hits and blasts take the channel of the drums; everything else
 ; takes the channel of the lead.  On a channel an effect is not started
-; while a more important one plays.
+; while a more important one plays, so the three are short
+; (tools/gametank/make_sound.py): a blast is seven frames.
 %import gametank
 %import sfx_data
 
@@ -18,6 +19,7 @@ audio {
     const ubyte URGENT = 3 << 4
 
     sub init() {
+        dbg.step(8)
     }
 
     ; An effect is a few frames long: it is left to end.

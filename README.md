@@ -53,7 +53,7 @@ The red X shots launched by transformed pods and falling charges from rail pods 
 | Go back, or return to title from play | Esc | Select | C |
 | Exit from the main menu | Esc | Select | (a console has nowhere to exit to) |
 
-The grave key is immediately left of 1 on US keyboards. On the GameTank either gamepad works. After 12 seconds with Play focused and idle, the Classic attract demo plays. Any supported input returns to the title with the current mode and starting wave intact.
+The grave key is immediately left of 1 on US keyboards. On the GameTank the gamepad goes in port 1. After 12 seconds with Play focused and idle, the Classic attract demo plays. Any supported input returns to the title with the current mode and starting wave intact.
 
 ## On the GameTank
 
@@ -64,7 +64,7 @@ The rules, the 40 by 30 grid, the waves and the modes are the Commander X16's. W
 - The CPU has under half the time per frame. Play is at full speed through wave 12 and a few percent slower in the busiest scenes after that (measured at waves 20 and 30).
 - The soundtrack is the same tune arranged for four FM channels, a little slower (150 beats a minute for 160). A sound effect borrows a channel from the music while it plays.
 
-It has been tested in an emulator only, not on a console.
+It has been played on a console (composite video, a gamepad in port 1) as well as in GameTankEmulator: the picture, the sound, the controls and the saved scores were checked there.
 
 ## Run
 
@@ -80,7 +80,7 @@ x16emu -c02 -mhz 8 -ram 512 -joy1 -prg RAILGUN.PRG -run -scale 2
 GameTankEmulator build/gametank/rail_gunner.gtr
 ```
 
-The GameTank version is a 2 MB cartridge image (`.gtr`) for [GameTankEmulator](https://github.com/clydeshaffer/GameTankEmulator) or a flash cartridge.
+The GameTank version is a 2 MB cartridge image (`.gtr`) for [GameTankEmulator](https://github.com/clydeshaffer/GameTankEmulator) or a flash cartridge. For a cartridge, give `gtld` the copy that the build writes beside it, `build/gametank/rail_gunner-flash.gtr`: it is the same with the unused banks left out, and takes half a minute to write, not many.
 
 ## Build and test
 
@@ -91,7 +91,7 @@ make cx16       # the X16 version in x16emu
 make run        # the GameTank version in GameTankEmulator
 ```
 
-`make` needs [p8p8](https://github.com/gillham/p8p8) with its `gametank` target as `p8c` (0.6.1-dev was used) and 64tass; `make test` also needs a C++ compiler and Python 3. [BUILD.md](BUILD.md) has the details, the offline build of the X16 version with the bundled tools (`sh build.sh` or `build.cmd`), and how the music and the GameTank's pictures and sound are made again.
+`make` needs [p8p8](https://github.com/gillham/p8p8) with its `gametank` target as `p8c` (0.6.1-dev was used; one from before 27 November 2026 builds an image that works in the emulator and stops after the logo on a console) and 64tass; `make test` also needs a C++ compiler and Python 3. [BUILD.md](BUILD.md) has the details, the offline build of the X16 version with the bundled tools (`sh build.sh` or `build.cmd`), and how the music and the GameTank's pictures and sound are made again.
 
 ## The source
 
@@ -101,6 +101,7 @@ make run        # the GameTank version in GameTankEmulator
 | `src/game.p8`, `src/scores.p8` | The game and the high score table, the same for both machines |
 | `src/cx16/`, `src/gametank/` | What a machine does in its own way: video, screens, input, sound, music, storage, start-up. The modules have the same names in both, and the build is given one of the two directories |
 | `tools/gametank/` | Makes the GameTank's pictures and sound, and `gth`, the GameTank without a window that the tests run in |
+| `src/gametank/debug/` | For `make debug`: a cartridge that shows on the screen how far it got |
 | `tests/` | What `make test` runs, and what it expects |
 | `docs/wiki/` | The player and developer guides |
 | `.context/`, `AGENTS.md`, `setup.py` | For AI coding assistants: see below |
