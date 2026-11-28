@@ -1,0 +1,27 @@
+title page: f347e79d
+high scores page, empty: 8ae6c716
+help page: 45b43d2d
+back on the title page: yes
+mode changed: yes
+mode wraps around: yes
+starting wave changed: yes
+C does not leave the title page: yes
+demo starts: yes
+demo ends at a button: yes
+classic, wave 1: plays yes, scores yes, at least 90% of full speed yes
+classic, wave 12: plays yes, scores yes, at least 90% of full speed yes
+Conway Life, wave 20: plays yes, scores yes, at least 90% of full speed yes
+HighLife, wave 20: plays yes, scores yes, at least 90% of full speed yes
+rule 30, wave 20: plays yes, scores yes, at least 90% of full speed yes
+rule 110, wave 20: plays yes, scores yes, at least 90% of full speed yes
+START pauses and resumes: yes
+C returns to the title page: yes
+the game ends: yes
+results page: 383e2327
+score in the table: yes
+saved: yes
+score still there after a restart: yes
+second save in the other sector: yes
+both scores after a restart, the higher first: yes
+records that are not a table are ignored: yes
+full sector erased and saved to: yes

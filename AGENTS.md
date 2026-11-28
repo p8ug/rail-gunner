@@ -1,26 +1,197 @@
-# Rail Gunner contributor handoff
+# AGENTS
 
-The repository is `p8ug/rail-gunner`. Use `main` as the integration branch. Rail Gunner 1.0 is the first stable release. It uses the tested R30 game binary. Release tags point to the source used to build their assets. The project was previously called Ion Break. The game uses the existing save filenames so players keep their high scores.
+## Setup check
 
-## Build and verify
+Before any Prog8 work, check that `.prog8-reference/VERSION` exists.  If it
+does not, the reference files have not been downloaded yet: stop and ask
+the user to run `python3 setup.py` (or `py setup.py` on Windows) from the
+repository root, or offer to run it yourself.  Do not continue without
+the reference files.
 
-- Read [BUILD.md](BUILD.md). The compiler is p8p8 0.6.0 and the assembler is 64tass 1.60.3243. Run `sh build.sh` or `build.cmd`, then use `build/RAILGUN.PRG`.
-- The 1.0 reference binary in the repository has SHA-256 `df48d71bd8f935235105e186d6bd79f238af306d84e9017bed78bf9ce92f6a3e`. An untouched checkout should build byte for byte. Rebuild after any code edit and validate the changed behavior.
-- Target the 65C02 Commander X16 at 8 MHz and 512 KB. X16Emu R49 is the tested emulator. The Linux build and offline soundtrack regeneration have been reproduced. The native Windows build script and physical console still need a run.
-- Conventional gameplay replays are within the 60 Hz budget. The forced 36-drone cascade can overrun it. See [REPLAY-RESULTS.md](REPLAY-RESULTS.md) for scenarios and revision-specific readings. The game sits close to the end of unbanked RAM, so check the compiler's `-meminfo` report when adding code or data.
+## Agent skills
 
-## Code map
+The author of the Prog8 compiler has created agent skill files for writing
+software with Prog8 and 6502 assembler.
 
-- `rail_gunner.p8` owns the menus, game loop, player, forms of growth, rail machinery, ammo, and collisions. It is the compiler entry point.
-- `video.p8` owns VERA tile setup, the two playfield tile maps, buffered cell writes, and display assets.
-- `input.p8` unifies keyboard and SNES controls. `audio.p8` drives the VERA PSG. `music.p8` plays embedded YM2151 music from `music_data.p8`.
-- `scores.p8` validates and writes the two-slot score files. Keep the existing filenames and compatibility with Ion Break scores.
-- The MIDI, `arrange_music.py`, and the checked-in ZSM reproduce the embedded arrangement. Preserve the music credit in the README and wiki.
+Note that any file references in the skills files below are relative
+to the `.prog8-reference` directory.
 
-## Regression checkpoints
+Read `.prog8-reference/.agents/skills/prog8-coder/SKILL.md` when writing or
+reviewing Prog8 code (skip this if your tool already loaded it as a skill).
 
-Cellular growth stops at row 24. Rows 25–26 allow an upward shot from outside a volatile cell's blast. The one-, two-, and three-gun layouts are reached on waves 1, 6, and 12. Test weapon and movement edits at those breakpoints and at both walls. A full refill in Ammo Packs is 40 volleys. X Shots is Shootable by default, with Unbreakable as the harder choice. Test menu navigation and simultaneous movement and fire on both keyboard and SNES after control changes.
+Only read `.prog8-reference/.agents/skills/asm6502-coder/SKILL.md`
+when writing or debugging `%asm`, `asmsub`, `extsub`, or `.asm` code.
 
-For each release, attach a standalone `RAILGUN.PRG` alongside the runtime and build ZIPs. Verify that the direct PRG and the runtime ZIP contain the same binary.
+## Prog8 project
+- This project is Rail Gunner, a game written in the Prog8 programming
+  language for two machines: the Commander X16 (`-target cx16`) and the
+  GameTank (`-target gametank`).  `README.md` describes the game.
+- It is built with the p8p8 compiler, which is in the shell's path as the
+  command `p8c`.  If it is not found, ask how to run the compiler.  The
+  GameTank version needs p8p8's `gametank` target and its overlays
+  (`tools/linux/p8p8/docs/OVERLAYS.md`); `prog8c` cannot build it.
+  `prog8c -libsearch` and the reference files are still the way to look
+  things up.
+- This project uses `make` with instructions written in the `Makefile`.
+  - After changing source code run `make check` to syntax check both
+    versions.
+  - Run `make` to build both, and read what `-meminfo` prints for the
+    GameTank: the fixed bank, the banks and the 6 KB of RAM are limits.
+  - Run `make test`: see "Testing" below.
+  - `make cx16` and `make run` start the emulators with a window; they do
+    not return until the window is closed.
+  - `make debug` builds the GameTank version that shows on the screen how
+    far it got, for a fault that only a console has: `BUILD.md`, "On a
+    console".  The emulators do not show everything a console does;
+    `.context/gametank_sdk.md`, section 10, has what was found.
+- When running `p8c` directly, copy the arguments from the `PCCARGS*`
+  variables in the `Makefile`.  Use `-check` for a fast syntax-only pass
+  and `-out build/<target>` to keep the project clean: each target needs a
+  directory of its own, and `-o` does not work for the GameTank.
+- There is no build for the virtual target: the game is its machines'
+  video, input and sound.  Test logic that both machines share on the
+  GameTank, with `make test`.
 
-Before a handoff, record the commit, changed behavior, build/hash, actual checks, and any open verification in the pull request or release notes. [CONTRIBUTOR.md](CONTRIBUTOR.md) covers contributions and wiki maintenance.
+## Repository rules
+
+- Source code goes in `src/`; the toplevel source file is
+  `src/rail_gunner.p8`.  The game is `src/game.p8`, the same for both
+  machines; `src/scores.p8` is the high score table.
+- Target specific (non-portable) code goes in the target's directory,
+  `src/cx16/` or `src/gametank/`, in a file named after the module with
+  `_platform.p8` appended, e.g. `src/cx16/input_platform.p8` imported with
+  `%import input_platform`.  Both directories have the same set: `video`,
+  `screens`, `input`, `audio`, `music`, `storage` and `target`.  A routine
+  that the game calls has to be in both, with the same parameters.
+- `-srcdirs` always includes `src` plus only the current target's
+  directory, so the right `_platform.p8` is picked up:
+  `-srcdirs src:src/cx16` with `-target cx16`, `-srcdirs src:src/gametank`
+  with `-target gametank`.
+- A change to `src/game.p8` or `src/scores.p8` changes both versions:
+  build and check both.  Assembly there names the virtual registers
+  (`cx16.r0L`), never their addresses, which differ between the machines.
+- On the GameTank the game is in a bank of the cartridge
+  (`src/gametank/target_platform.p8` says what is where).  Read
+  `.context/gametank_sdk.md`, section 10 above all, before changing how
+  blocks call each other.
+- Try to use portable libraries, and create portable libraries and code
+  as much as possible.  Ask questions if you're unsure.
+
+## Things to keep working
+
+Cellular growth stops at row 24.  Rows 25-26 allow an upward shot from
+outside a volatile cell's blast.  The one-, two-, and three-gun layouts
+are reached on waves 1, 6, and 12: test weapon and movement edits at those
+and at both walls.  A full refill in Ammo Packs is 40 volleys.  X Shots is
+Shootable by default.  The X16 version keeps the score file names of Ion
+Break (`ionbreak.sco`, `ionbreak.bak`) and reads its files.  Preserve the
+music credit in the README and the wiki.
+
+# Agent context
+
+## Prog8 language overview
+
+The `.prog8-reference` directory holds the Prog8 and 6502 assembler portions
+of the upstream Prog8 compiler repository: agent skills, docs, the grammar,
+the standard library and example code.  It is generated by `setup.py` to
+match the installed `prog8c` version, which is recorded in
+`.prog8-reference/VERSION`.
+
+The syntax of the Prog8 language is documented in an ANTLR4 grammar file.
+If a syntax question isn't answered by an existing skill file or a `-check`
+message, grep `.prog8-reference/parser/src/main/antlr/Prog8ANTLR.g4` for the rule.
+
+There is documentation in `.prog8-reference/docs/source` and below is a
+table of the most relevant files to view.
+Do not blindly read all of the files.  Use the command below, replacing `libraries.rst`
+with the appropriate file, to see the section headers.
+
+`awk 'NR>1 && /^[\^\*=~-]+$/ && prev ~ /^[A-Za-z]/ {print (NR-1) ": " prev} {prev=$0}' .prog8-reference/docs/source/libraries.rst`
+
+|Filename|
+|--------|
+|`compiling.rst`|
+|`libraries.rst`|
+|`programming.rst`|
+|`structpointers.rst`|
+|`targetsystem.rst`|
+|`variables.rst`|
+
+
+## Prog8 context files
+
+These files in `.context/` must only add what the upstream skills don't
+already cover.
+
+| Filename                       |Status|Description|
+|--------------------------------|------|-----------|
+| `modules.md`         |partial|Prog8 standard library modules|
+| `versions.md`         |partial|Prog8 compiler versions and their features|
+| `gametank_sdk.md`     |complete|GameTank game development: the SDK routines of the `gametank` target, with examples|
+
+Only look in `.context/versions.md` if there is a possible compiler bug.
+
+Read `.context/gametank_sdk.md` before writing or changing a GameTank program.
+
+### Finding context
+- When grepping in `.prog8-reference` add `--include=*.p8` to limit the
+searches to only Prog8 source code.
+- A compact list of every library module, subroutine and signature for
+each target is in
+`.prog8-reference/docs/source/_static/symboldumps/skeletons-<target>.txt`.
+Grep it rather than reading it whole.
+
+## Prog8 standard library code
+
+The preferred way to search the standard library is `prog8c -libsearch`
+with a quoted regex:
+- `prog8c -libsearch 'sub\s+print\s?\('` finds the definitions of `print`.
+- `prog8c -libsearch 'txt\.print_ub'` finds uses of `txt.print_ub`.
+
+Normally it is not necessary, but `prog8c -libdump build/` dumps the
+library source for the exact compiler in use into `build/prog8lib-*`.
+Run `make clean` first if a different compiler version was used before,
+so only one matching directory exists.
+
+The library source is also in `.prog8-reference/compiler/res/prog8lib/`
+(never read whole files), but it may not match the `prog8c` binary if
+the compiler was changed after `setup.py` was run, so trust `-libsearch`
+and `-libdump` results over it.
+
+When using versions of `prog8c` older than v12.2, warn the user and ask if they
+want to proceed with the older version of the compiler.
+
+## Prog8 sample code
+Do not blindly read whole example files.  Use `grep`.
+
+Directories with some example code written in Prog8:
+- `.prog8-reference/examples/`
+- `.prog8-reference/benchmark-program/`
+- `.prog8-reference/benchmark-c/`
+- `.prog8-reference/compiler/test/arithmetic/`
+- `.prog8-reference/compiler/test/comparisons/`
+
+## Testing Prog8 source code changes
+
+`make test` builds both versions and runs the GameTank version in `gth`, a
+GameTank without a window (`tools/gametank/gth.cpp`; it needs a C++
+compiler).  `tests/gametank_test.py` presses buttons, reads the program's
+variables by name and prints a line for each thing it checks: the pages of
+the menu, a short game in every mode and its speed, pause, the demo, and
+saving the high scores to flash.  The output is compared with
+`tests/expected/gametank.txt`.  It takes about 20 seconds.
+
+- A page of text is checked by the CRC of the picture.  When a page is
+  changed on purpose, look at it
+  (`python3 tools/gametank/gt.py shot build/page.ppm --frames 0` for the
+  title page) before putting the new line in the expected file.
+- `tools/gametank/gt.py speed` and `gt.py profile` measure the speed of a
+  game and where the time of a frame goes.  A GameTank frame is 59,659
+  cycles; measure after a change to anything that runs every tick.
+- The Commander X16 version has no automatic test.  After a change that
+  reaches it, run it in x16emu (the `x16` debugger tools, when there are
+  any, can load `build/cx16/rail_gunner.prg`, write memory and take a
+  screenshot): the attract demo starts after 12 idle seconds on the title
+  page and shows the arena, the HUD and play.
+
+Ask before changing any of the tests.

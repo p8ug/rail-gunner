@@ -2,11 +2,13 @@
 
 [Download Rail Gunner 1.0](https://github.com/p8ug/rail-gunner/releases/tag/v1.0.0) · [Player and developer wiki](https://github.com/p8ug/rail-gunner/wiki) · [Contributing](CONTRIBUTOR.md)
 
-Rail Gunner is an original grid shooter for the Commander X16. Your one-cell ship faces up and starts with a single gun in the center. At wave 6, two guns fire on either side of the ship. At wave 12, the center gun joins them. At either wall, the outside lane drops away. Each round hits at most one target.
+Rail Gunner is an original grid shooter for the Commander X16 and the GameTank, written in [Prog8](https://prog8.readthedocs.io). Both versions are built from the same game code and play the same; [what differs on the GameTank](#on-the-gametank) is listed below. Version 1.0 is the Commander X16 release; the GameTank version is new in this source tree and has no release yet.
+
+Your one-cell ship faces up and starts with a single gun in the center. At wave 6, two guns fire on either side of the ship. At wave 12, the center gun joins them. At either wall, the outside lane drops away. Each round hits at most one target.
 
 ## Ammo and Power Shot
 
-Hold Space or SNES B for full auto. On the title screen, select Ammo and press Left or Right to choose a rule.
+Hold Fire (Space, SNES B, or A or B on the GameTank) for full auto. On the title screen, select Ammo and press Left or Right to choose a rule.
 
 - **Unlimited** starts selected and fires at full speed without an ammo counter.
 - **Slowdown** gradually increases the interval from six to twelve ticks as the gauge drains. The guns keep firing at zero. Release Fire to refill gradually or collect a green pod to refill immediately.
@@ -17,7 +19,7 @@ Limited modes count one unit per volley, including with two or three guns. The m
 
 ## Modes and waves
 
-The title opens on Play with Classic and wave 1 selected. Up and Down select a menu row. Left and Right change the highlighted setting. Tap for a one-wave adjustment or hold to move faster through waves 1–65,535. Space or SNES B activates Play, High Scores, or Controls & Credits. The high-score table is local and includes all modes and starting waves.
+The title opens on Play with Classic and wave 1 selected. Up and Down select a menu row. Left and Right change the highlighted setting. Tap for a one-wave adjustment or hold to move faster through waves 1–65,535. Fire activates Play, High Scores, or Controls & Credits. The high-score table is local and includes all modes and starting waves.
 
 | Mode | Formations |
 |---|---|
@@ -43,18 +45,28 @@ The red X shots launched by transformed pods and falling charges from rail pods 
 
 ## Controls
 
-| Action | Keyboard | SNES |
-|---|---|---|
-| Move | Arrows, or 1 up, grave down, Left Ctrl left, 2 right | D-pad |
-| Fire or activate the selected title choice | Space | B |
-| Pause or resume during play | Enter | Start |
-| Go back, return to title from play, or exit from the main menu | Esc | Select |
+| Action | X16 keyboard | X16 SNES pad | GameTank gamepad |
+|---|---|---|---|
+| Move | Arrows, or 1 up, grave down, Left Ctrl left, 2 right | D-pad | D-pad |
+| Fire or activate the selected title choice | Space | B | A or B |
+| Pause or resume during play | Enter | Start | Start |
+| Go back, or return to title from play | Esc | Select | C |
+| Exit from the main menu | Esc | Select | (a console has nowhere to exit to) |
 
-The grave key is immediately left of 1 on US keyboards. After 12 seconds with Play focused and idle, the Classic attract demo plays. Any supported input returns to the title with the current mode and starting wave intact.
+The grave key is immediately left of 1 on US keyboards. On the GameTank the gamepad goes in port 1. After 12 seconds with Play focused and idle, the Classic attract demo plays. Any supported input returns to the title with the current mode and starting wave intact.
 
-## Run and build
+## On the GameTank
 
-For offline build steps using the bundled tools, see [BUILD.md](BUILD.md).
+The rules, the 40 by 30 grid, the waves and the modes are the Commander X16's. What the machine changes:
+
+- The picture is 128 by 128 pixels, so a cell of the arena is 3 by 4 pixels and every object is a small coloured shape. The grid shows as a dot in the corner of each cell. Text is in a 3 by 5 pixel font, and the pages of the menu are laid out for 31 characters to a line.
+- The high scores are saved in the cartridge's flash memory. An Ion Break or X16 score file cannot be carried over.
+- The CPU has under half the time per frame. Play is at full speed through wave 12 and a few percent slower in the busiest scenes after that (measured at waves 20 and 30).
+- The soundtrack is the same tune arranged for four FM channels, a little slower (150 beats a minute for 160). A sound effect borrows a channel from the music while it plays.
+
+It has been played on a console (composite video, a gamepad in port 1) as well as in GameTankEmulator: the picture, the sound, the controls and the saved scores were checked there.
+
+## Run
 
 On an X16 with writable storage, load the PRG name as shipped:
 
@@ -63,16 +75,47 @@ LOAD"RAILGUN.PRG",8,1
 RUN
 ```
 
-The build ZIP includes the original PRG as `RAILGUN-1.0-REFERENCE.PRG`. The build scripts produce `build/RAILGUN.PRG` with the soundtrack embedded.
-
 ```sh
 x16emu -c02 -mhz 8 -ram 512 -joy1 -prg RAILGUN.PRG -run -scale 2
-mkdir -p build
-p8c -target cx16 -out build rail_gunner.p8
+GameTankEmulator build/gametank/rail_gunner.gtr
 ```
 
-Build with p8p8 v0.6.0 and 64tass. The optional music regeneration step is `python3 arrange_music.py` with Python and Mido. This regenerates `PUNCH.ZSM` and `music_data.p8` from the included source MIDI.
+The GameTank version is a 2 MB cartridge image (`.gtr`) for [GameTankEmulator](https://github.com/clydeshaffer/GameTankEmulator) or a flash cartridge. For a cartridge, give `gtld` the copy that the build writes beside it, `build/gametank/rail_gunner-flash.gtr`: it is the same with the unused banks left out, and takes half a minute to write, not many.
+
+## Build and test
+
+```sh
+make            # build/cx16/rail_gunner.prg and build/gametank/rail_gunner.gtr
+make test       # runs the GameTank version without a window and checks it
+make cx16       # the X16 version in x16emu
+make run        # the GameTank version in GameTankEmulator
+```
+
+`make` needs [p8p8](https://github.com/gillham/p8p8) with its `gametank` target as `p8c` (0.6.1-dev was used; one from before 27 November 2026 builds an image that works in the emulator and stops after the logo on a console) and 64tass; `make test` also needs a C++ compiler and Python 3. [BUILD.md](BUILD.md) has the details, the offline build of the X16 version with the bundled tools (`sh build.sh` or `build.cmd`), and how the music and the GameTank's pictures and sound are made again.
+
+## The source
+
+| Where | What |
+|---|---|
+| `src/rail_gunner.p8` | The entry point |
+| `src/game.p8`, `src/scores.p8` | The game and the high score table, the same for both machines |
+| `src/cx16/`, `src/gametank/` | What a machine does in its own way: video, screens, input, sound, music, storage, start-up. The modules have the same names in both, and the build is given one of the two directories |
+| `tools/gametank/` | Makes the GameTank's pictures and sound, and `gth`, the GameTank without a window that the tests run in |
+| `src/gametank/debug/` | For `make debug`: a cartridge that shows on the screen how far it got |
+| `tests/` | What `make test` runs, and what it expects |
+| `docs/wiki/` | The player and developer guides |
+| `.context/`, `AGENTS.md`, `setup.py` | For AI coding assistants: see below |
+
+The [developer guide](docs/wiki/Developer-Guide.md) says more about each module. [CONTRIBUTOR.md](CONTRIBUTOR.md) is for changes.
+
+### AI coding assistants
+
+`AGENTS.md` is the one set of instructions for AI agents; `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/prog8.mdc` and `.aiassistant/rules/AGENT_RULES.md` only point at it. It sends an agent to the Prog8 compiler's own skills, documentation and library source, which are not in this repository: `python3 setup.py` downloads them into `.prog8-reference` (ignored by git) to match the installed compiler. Run it once after cloning, and again after installing another compiler version. `.context/gametank_sdk.md` is the reference for the GameTank library, with what was learned in this port.
 
 ## Music credit
 
-“Punch Your Way Through” by northivanastan, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Original source and license are on [OpenGameArt](https://opengameart.org/content/punch-your-way-through). The R22 arrangement uses the X16's YM2151 for a sub-octave bass and riff, a brighter lead, and contrasting FM kick and noise snare patches. The same loop plays during live play and attract. Gunfire, hits, warnings, explosions, pickups, and reload cues use VERA PSG.
+“Punch Your Way Through” by northivanastan, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Original source and license are on [OpenGameArt](https://opengameart.org/content/punch-your-way-through). The R22 arrangement uses the X16's YM2151 for a sub-octave bass and riff, a brighter lead, and contrasting FM kick and noise snare patches. The same loop plays during live play and attract. Gunfire, hits, warnings, explosions, pickups, and reload cues use VERA PSG. The GameTank arrangement is `tools/gametank/make_sound.py`: riff, lead, bass and drums on the four FM channels of the console's sound chip.
+
+## Licenses
+
+Rail Gunner is under the [MIT license](LICENSE). The music is CC0, as credited above. The bundled tools and the CPU core of the test harness keep their own licenses: see [tools/UPSTREAM.md](tools/UPSTREAM.md). The GameTank library that the program is built with comes with p8p8; parts of it are from the GameTank SDK (MIT).

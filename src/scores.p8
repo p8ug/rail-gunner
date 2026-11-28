@@ -1,4 +1,7 @@
-%import diskio
+; The high score table, the same on every machine.  It is kept twice, in the
+; two slots of the machine's storage_platform module: a save goes to the slot
+; that does not hold the newest table, so an interrupted save loses nothing.
+%import storage_platform
 
 scores {
     long[5] points
@@ -27,10 +30,10 @@ scores {
         last_save_ok = true
         active_slot = no_slot
         generation = 0
-        if read_record("ionbreak.sco") {
+        if read_record(0) {
             restore_record(0)
         }
-        if read_record("ionbreak.bak") {
+        if read_record(1) {
             uword age = mkword(data[4], data[3]) - generation
             if active_slot == no_slot or (age != 0 and age < 32768) {
                 restore_record(1)
@@ -84,12 +87,11 @@ scores {
         return mkword(accumulated, running)
     }
 
-    sub read_record(str filename) -> bool {
-        if not diskio.f_open(filename) {
+    sub read_record(ubyte slot) -> bool {
+        uword count = storage.read(slot, &data, record_size + 1)
+        if count == 0 {
             return false
         }
-        uword count = diskio.f_read(&data, record_size + 1)
-        diskio.f_close()
         if data[0] != 73 or data[1] != 66 {
             return false
         }
@@ -151,12 +153,12 @@ scores {
 
     sub save_record() -> bool {
         if active_slot == 0 {
-            return save_to_slot(1, "ionbreak.bak")
+            return save_to_slot(1)
         }
-        return save_to_slot(0, "ionbreak.sco")
+        return save_to_slot(0)
     }
 
-    sub save_to_slot(ubyte slot, str filename) -> bool {
+    sub save_to_slot(ubyte slot) -> bool {
         uword next_generation = generation + 1
         data[0] = 73
         data[1] = 66
@@ -182,11 +184,10 @@ scores {
         data[record_size - 1] = msb(check)
 
         ; Overwrite the inactive copy so interruption preserves the last valid table.
-        diskio.delete(filename)
-        if not diskio.save_raw(filename, &data, record_size) {
+        if not storage.write(slot, &data, record_size) {
             return false
         }
-        if not read_record(filename) {
+        if not read_record(slot) {
             return false
         }
         if mkword(data[4], data[3]) != next_generation {

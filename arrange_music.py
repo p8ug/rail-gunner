@@ -117,4 +117,4 @@ if __name__ == "__main__":
     for start in range(0, len(data), 24):
         lines.append("            .byte " + ",".join(str(b) for b in data[start:start + 24]))
     lines += ["        }}", "    }", "}", ""]
-    (ROOT / "music_data.p8").write_text("\n".join(lines))
+    (ROOT / "src" / "cx16" / "music_data.p8").write_text("\n".join(lines))
